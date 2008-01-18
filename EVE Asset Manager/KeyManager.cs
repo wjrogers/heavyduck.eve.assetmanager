@@ -18,65 +18,57 @@ namespace HeavyDuck.EveAssetManager
     {
         private static KeyManager the_instance = null;
 
-        private DataTable m_keys;
-        private DataTable m_characters;
-
         private KeyManager()
         {
             InitializeComponent();
 
-            // initialize grids
+            // set up key grid
             GridHelper.Initialize(grid_keys, false);
-            GridHelper.Initialize(grid_characters, true);
-
-            // prep the key table
-            m_keys = new DataTable("Keys");
-            m_keys.Columns.Add("userID", typeof(int));
-            m_keys.Columns.Add("apiKey", typeof(string));
-            m_keys.PrimaryKey = new DataColumn[] { m_keys.Columns["userID"] };
-
-            // prep the characters table
-            m_characters = new DataTable("Characters");
-            m_characters.Columns.Add("userID", typeof(int));
-            m_characters.Columns.Add("name", typeof(string));
-            m_characters.Columns.Add("characterID", typeof(int));
-            m_characters.Columns.Add("corporationName", typeof(string));
-            m_characters.Columns.Add("corporationID", typeof(int));
-
-            // add columns to key table
             GridHelper.AddColumn(grid_keys, "userID", "User ID");
             GridHelper.AddColumn(grid_keys, "apiKey", "Full API Key");
             grid_keys.AllowUserToAddRows = true;
             grid_keys.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid_keys.Columns["userID"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid_keys.DataSource = m_keys;
+            grid_keys.DataSource = Program.ApiKeys;
+            grid_keys.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
-            // add columns to characters table
+            // set up character grid
+            GridHelper.Initialize(grid_characters, true);
             GridHelper.AddColumn(grid_characters, "userID", "User ID");
             GridHelper.AddColumn(grid_characters, "name", "Name");
             GridHelper.AddColumn(grid_characters, "characterID", "Character ID");
             GridHelper.AddColumn(grid_characters, "corporationName", "Corporation");
             GridHelper.AddColumn(grid_characters, "corporationID", "Corp ID");
             grid_characters.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            grid_characters.DataSource = m_characters;
+            grid_characters.DataSource = Program.Characters;
 
             // no sorty-sort arrows
             GridHelper.DisableClickToSort(grid_keys, false);
             GridHelper.DisableClickToSort(grid_characters, false);
 
             // event handlers
-            this.Load += new EventHandler(KeyManager_Load);
-            add_button.Click += new EventHandler(add_button_Click);
+            remove_button.Click += new EventHandler(remove_button_Click);
             refresh_button.Click += new EventHandler(refresh_button_Click);
         }
 
-        private void KeyManager_Load(object sender, EventArgs e)
+        private void remove_button_Click(object sender, EventArgs e)
         {
-        }
+            List<DataRow> rows = new List<DataRow>(grid_keys.SelectedRows.Count);
+            DataRowView view;
 
-        private void add_button_Click(object sender, EventArgs e)
-        {
-            m_keys.LoadDataRow(new object[] { 175621, @"dTTsX4o7JP6kxdHmZtiHUdTNeFy20jDTuJiroAi2a3XcoitXrspbXyslRUsrsGHe" }, true);
+            // mark the rows we are going to kill
+            foreach (DataGridViewRow selected in grid_keys.SelectedRows)
+            {
+                view = selected.DataBoundItem as DataRowView;
+                if (view != null) rows.Add(view.Row);
+            }
+
+            // delete them...
+            foreach (DataRow row in rows)
+                row.Delete();
+
+            // ... and accept the changes
+            Program.ApiKeys.AcceptChanges();
         }
 
         private void refresh_button_Click(object sender, EventArgs e)
@@ -87,9 +79,9 @@ namespace HeavyDuck.EveAssetManager
             DataTable tempChars;
 
             // this is where we're gonna put the characters while we query and read XML and stuff
-            tempChars = m_characters.Clone();
+            tempChars = Program.Characters.Clone();
             
-            foreach (DataRow row in m_keys.Rows)
+            foreach (DataRow row in Program.ApiKeys.Rows)
             {
                 // grab the account ID and key from the row
                 userID = Convert.ToInt32(row["userID"]);
@@ -98,7 +90,7 @@ namespace HeavyDuck.EveAssetManager
                 // query the API
                 try
                 {
-                    path = EveApiHelper.GetCharacters(175621, @"dTTsX4o7JP6kxdHmZtiHUdTNeFy20jDTuJiroAi2a3XcoitXrspbXyslRUsrsGHe");
+                    path = EveApiHelper.GetCharacters(userID, apiKey);
                 }
                 catch (EveApiException ex)
                 {
@@ -136,9 +128,9 @@ namespace HeavyDuck.EveAssetManager
             }
 
             // clear our character list and replace it
-            m_characters.Rows.Clear();
+            Program.Characters.Rows.Clear();
             foreach (DataRow row in tempChars.Rows)
-                m_characters.LoadDataRow(row.ItemArray, true);
+                Program.Characters.LoadDataRow(row.ItemArray, true);
         }
 
         public static new void Show(IWin32Window parent)

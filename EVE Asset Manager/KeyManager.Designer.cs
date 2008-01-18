@@ -32,7 +32,7 @@ namespace HeavyDuck.EveAssetManager
             this.refresh_button = new System.Windows.Forms.Button();
             this.grid_characters = new System.Windows.Forms.DataGridView();
             this.done_button = new System.Windows.Forms.Button();
-            this.add_button = new System.Windows.Forms.Button();
+            this.remove_button = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.grid_keys)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.grid_characters)).BeginInit();
             this.SuspendLayout();
@@ -79,14 +79,14 @@ namespace HeavyDuck.EveAssetManager
             this.done_button.Text = "Done";
             this.done_button.UseVisualStyleBackColor = true;
             // 
-            // add_button
+            // remove_button
             // 
-            this.add_button.Location = new System.Drawing.Point(12, 96);
-            this.add_button.Name = "add_button";
-            this.add_button.Size = new System.Drawing.Size(75, 23);
-            this.add_button.TabIndex = 4;
-            this.add_button.Text = "Add";
-            this.add_button.UseVisualStyleBackColor = true;
+            this.remove_button.Location = new System.Drawing.Point(12, 96);
+            this.remove_button.Name = "remove_button";
+            this.remove_button.Size = new System.Drawing.Size(75, 23);
+            this.remove_button.TabIndex = 4;
+            this.remove_button.Text = "Remove";
+            this.remove_button.UseVisualStyleBackColor = true;
             // 
             // KeyManager
             // 
@@ -94,7 +94,7 @@ namespace HeavyDuck.EveAssetManager
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(516, 298);
             this.ControlBox = false;
-            this.Controls.Add(this.add_button);
+            this.Controls.Add(this.remove_button);
             this.Controls.Add(this.done_button);
             this.Controls.Add(this.grid_characters);
             this.Controls.Add(this.refresh_button);
@@ -116,6 +116,6 @@ namespace HeavyDuck.EveAssetManager
         private System.Windows.Forms.Button refresh_button;
         private System.Windows.Forms.DataGridView grid_characters;
         private System.Windows.Forms.Button done_button;
-        private System.Windows.Forms.Button add_button;
+        private System.Windows.Forms.Button remove_button;
     }
 }
