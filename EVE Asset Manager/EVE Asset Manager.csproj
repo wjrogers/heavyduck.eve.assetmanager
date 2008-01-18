@@ -7,7 +7,7 @@
     <ProjectGuid>{0706BA80-362F-4F6F-A583-63923F92695F}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HeavyDuck.EveAssetManager</RootNamespace>
+    <RootNamespace>HeavyDuck.Eve.AssetManager</RootNamespace>
     <AssemblyName>EVE Asset Manager</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

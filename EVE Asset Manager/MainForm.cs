@@ -8,7 +8,7 @@ using System.Windows.Forms;
 using HeavyDuck.Eve;
 using HeavyDuck.Utilities.Forms;
 
-namespace HeavyDuck.EveAssetManager
+namespace HeavyDuck.Eve.AssetManager
 {
     public partial class MainForm : Form
     {
