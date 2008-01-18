@@ -1,4 +1,4 @@
-namespace HeavyDuck.EveAssetManager
+namespace HeavyDuck.Eve.AssetManager
 {
     partial class MainForm
     {
