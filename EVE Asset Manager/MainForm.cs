@@ -21,6 +21,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         private DataTable m_assets;
         private List<WhereClause> m_clauses;
+        private ToolStripLabel m_count_label;
 
         public MainForm()
         {
@@ -41,6 +42,7 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.Initialize(grid, true);
             GridHelper.AddColumn(grid, "typeName", "Name");
             GridHelper.AddColumn(grid, "groupName", "Group");
+            GridHelper.AddColumn(grid, "categoryName", "Category");
             GridHelper.AddColumn(grid, "characterName", "Owner");
             GridHelper.AddColumn(grid, "quantity", "Count");
             GridHelper.AddColumn(grid, "locationName", "Location");
@@ -48,15 +50,26 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "flagName", "Flag");
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid.Columns["typeName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns["categoryName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["characterName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["quantity"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             grid.Columns["containerName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["flagName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
 
+            // the label for counting assets
+            m_count_label = new ToolStripLabel();
+            m_count_label.Name = "count_label";
+            m_count_label.Alignment = ToolStripItemAlignment.Right;
+            m_count_label.Text = "0 assets";
+
             // set up the toolbar
             toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
             toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
+            toolbar.Items.Add(m_count_label);
+
+            // initialize the count label
+            UpdateAssetCount();
         }
 
         private void ToolStripItem_Click(object sender, EventArgs e)
@@ -123,6 +136,36 @@ namespace HeavyDuck.Eve.AssetManager
             m_clauses = clauses;
         }
 
+        private void UpdateAssetCount()
+        {
+            int total = 0;
+
+            // count the total number of assets in the local db
+            using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
+            {
+                conn.Open();
+
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    try
+                    {
+                        cmd.CommandText = "SELECT count(*) FROM assets";
+                        total = Convert.ToInt32(cmd.ExecuteScalar());
+                    }
+                    catch
+                    {
+                        // pass
+                    }
+                }
+            }
+
+            // update the label
+            if (m_assets != null)
+                m_count_label.Text = string.Format("showing {0:#,##0} assets (of {1:#,##0})", m_assets.Rows.Count, total);
+            else
+                m_count_label.Text = string.Format("{0:#,##0} assets cached", total);
+        }
+
         private void RunQuery()
         {
             ProgressDialog dialog;
@@ -138,6 +181,7 @@ namespace HeavyDuck.Eve.AssetManager
                 dialog.Show();
 
                 grid.DataSource = m_assets;
+                UpdateAssetCount();
             }
             catch (ProgressException ex)
             {
@@ -275,11 +319,12 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, f.flagName, ct.typeName AS containerName, COALESCE(l.itemName, cl.itemName) AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName AS containerName, COALESCE(l.itemName, cl.itemName) AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
                 sql.Append("JOIN eve.invGroups g ON g.groupID = t.groupID ");
+                sql.Append("JOIN eve.invCategories cat ON cat.categoryID = g.categoryID ");
                 sql.Append("LEFT JOIN eve.invFlags f ON f.flagID = a.flag ");
                 sql.Append("LEFT JOIN eve.eveNames l ON l.itemID = a.locationID ");
                 sql.Append("LEFT JOIN assets c ON c.itemID = a.containerID ");
