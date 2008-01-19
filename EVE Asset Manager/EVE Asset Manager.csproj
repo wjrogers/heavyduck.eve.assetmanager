@@ -53,6 +53,12 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="NewKeyDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="NewKeyDialog.Designer.cs">
+      <DependentUpon>NewKeyDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="KeyManager.resx">
@@ -62,6 +68,10 @@
     <EmbeddedResource Include="MainForm.resx">
       <SubType>Designer</SubType>
       <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="NewKeyDialog.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>NewKeyDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

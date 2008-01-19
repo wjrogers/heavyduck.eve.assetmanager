@@ -106,7 +106,7 @@ namespace HeavyDuck.Eve.AssetManager
                 int userID = Convert.ToInt32(row["userID"]);
                 int characterID = Convert.ToInt32(row["characterID"]);
                 string apiKey = Program.ApiKeys.Rows.Find(userID)["apiKey"].ToString();
-                string characterName = row["characterName"].ToString();
+                string characterName = row["name"].ToString();
 
                 try
                 {
@@ -211,7 +211,8 @@ namespace HeavyDuck.Eve.AssetManager
                 // attach the eve database
                 using (SQLiteCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"ATTACH DATABASE 'C:\Temp\trinity_1.0_sqlite3.db' AS eve";
+                    cmd.CommandText = "ATTACH DATABASE @dbpath AS eve";
+                    cmd.Parameters.AddWithValue("@dbpath", Program.CcpDatabasePath);
                     cmd.ExecuteNonQuery();
                 }
 
