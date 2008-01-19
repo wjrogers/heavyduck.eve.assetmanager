@@ -75,15 +75,20 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void ToolStripItem_Click(object sender, EventArgs e)
         {
+            ProgressDialog dialog;
             ToolStripItem item = sender as ToolStripItem;
             if (item == null) return;
 
             switch (item.Name)
             {
                 case "refresh":
-                    m_assets = RefreshAssets();
+                    dialog = new ProgressDialog();
+                    dialog.AddTask(RefreshAssets);
+                    dialog.Show();
+
                     m_filter.Text = "";
                     grid.DataSource = m_assets;
+
                     break;
                 case "manage_keys":
                     KeyManager.Show(this);
@@ -93,14 +98,21 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private static DataTable RefreshAssets()
+        private void RefreshAssets(IProgressDialog dialog)
         {
             Dictionary<string, List<string>> assetFiles = new Dictionary<string, List<string>>();
 
+            // clear the assets and set our dialog value/max
+            m_assets = null;
+            dialog.Update(0, 5);
+
             // make sure our character list is up to date
+            dialog.Update("Refreshing character list...");
             Program.RefreshCharacters();
+            dialog.Advance();
 
             // fetch the asset XML
+            dialog.Update("Querying API for asset lists...");
             foreach (DataRow row in Program.Characters.Rows)
             {
                 int userID = Convert.ToInt32(row["userID"]);
@@ -118,8 +130,10 @@ namespace HeavyDuck.Eve.AssetManager
                     MessageBox.Show("Error retrieving assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            dialog.Advance();
 
             // init the database
+            dialog.Update("Initializing local asset database...");
             try
             {
                 InitializeDB();
@@ -127,10 +141,12 @@ namespace HeavyDuck.Eve.AssetManager
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to initialize the asset database:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
+                return;
             }
+            dialog.Advance();
 
             // parse the files
+            dialog.Update("Parsing asset XML...");
             foreach (string characterName in assetFiles.Keys)
             {
                 foreach (string assetFile in assetFiles[characterName])
@@ -145,17 +161,19 @@ namespace HeavyDuck.Eve.AssetManager
                     }
                 }
             }
+            dialog.Advance();
 
             // load the data
+            dialog.Update("Loading asset data...");
             try
             {
-                return GetAssetTable();
+                m_assets = GetAssetTable();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Failed to query the asset data:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
             }
+            dialog.Advance();
         }
 
         private static void InitializeDB()
