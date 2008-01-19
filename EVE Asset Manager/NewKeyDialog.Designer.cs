@@ -51,7 +51,7 @@ namespace HeavyDuck.Eve.AssetManager
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.id_box.Location = new System.Drawing.Point(88, 12);
             this.id_box.Name = "id_box";
-            this.id_box.Size = new System.Drawing.Size(120, 20);
+            this.id_box.Size = new System.Drawing.Size(149, 20);
             this.id_box.TabIndex = 1;
             // 
             // label2
@@ -69,14 +69,14 @@ namespace HeavyDuck.Eve.AssetManager
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.key_box.Location = new System.Drawing.Point(88, 38);
             this.key_box.Name = "key_box";
-            this.key_box.Size = new System.Drawing.Size(395, 20);
+            this.key_box.Size = new System.Drawing.Size(424, 20);
             this.key_box.TabIndex = 3;
             // 
             // ok_button
             // 
             this.ok_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ok_button.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.ok_button.Location = new System.Drawing.Point(327, 80);
+            this.ok_button.Location = new System.Drawing.Point(356, 80);
             this.ok_button.Name = "ok_button";
             this.ok_button.Size = new System.Drawing.Size(75, 23);
             this.ok_button.TabIndex = 4;
@@ -87,7 +87,7 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             this.cancel_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.cancel_button.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cancel_button.Location = new System.Drawing.Point(408, 80);
+            this.cancel_button.Location = new System.Drawing.Point(437, 80);
             this.cancel_button.Name = "cancel_button";
             this.cancel_button.Size = new System.Drawing.Size(75, 23);
             this.cancel_button.TabIndex = 5;
@@ -100,7 +100,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.cancel_button;
-            this.ClientSize = new System.Drawing.Size(495, 115);
+            this.ClientSize = new System.Drawing.Size(524, 115);
             this.ControlBox = false;
             this.Controls.Add(this.cancel_button);
             this.Controls.Add(this.ok_button);
