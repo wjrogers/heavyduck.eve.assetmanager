@@ -45,13 +45,13 @@ namespace HeavyDuck.Eve.AssetManager
             this.grid_keys.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.grid_keys.Location = new System.Drawing.Point(12, 12);
             this.grid_keys.Name = "grid_keys";
-            this.grid_keys.Size = new System.Drawing.Size(570, 106);
+            this.grid_keys.Size = new System.Drawing.Size(570, 130);
             this.grid_keys.TabIndex = 0;
             // 
             // refresh_button
             // 
             this.refresh_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.refresh_button.Location = new System.Drawing.Point(470, 124);
+            this.refresh_button.Location = new System.Drawing.Point(470, 148);
             this.refresh_button.Name = "refresh_button";
             this.refresh_button.Size = new System.Drawing.Size(112, 23);
             this.refresh_button.TabIndex = 1;
@@ -64,16 +64,16 @@ namespace HeavyDuck.Eve.AssetManager
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.grid_characters.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.grid_characters.Location = new System.Drawing.Point(12, 153);
+            this.grid_characters.Location = new System.Drawing.Point(12, 177);
             this.grid_characters.Name = "grid_characters";
-            this.grid_characters.Size = new System.Drawing.Size(570, 159);
+            this.grid_characters.Size = new System.Drawing.Size(570, 150);
             this.grid_characters.TabIndex = 2;
             // 
             // done_button
             // 
             this.done_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.done_button.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.done_button.Location = new System.Drawing.Point(507, 318);
+            this.done_button.Location = new System.Drawing.Point(507, 333);
             this.done_button.Name = "done_button";
             this.done_button.Size = new System.Drawing.Size(75, 23);
             this.done_button.TabIndex = 3;
@@ -82,7 +82,7 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             // remove_button
             // 
-            this.remove_button.Location = new System.Drawing.Point(93, 124);
+            this.remove_button.Location = new System.Drawing.Point(93, 148);
             this.remove_button.Name = "remove_button";
             this.remove_button.Size = new System.Drawing.Size(75, 23);
             this.remove_button.TabIndex = 4;
@@ -91,7 +91,7 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             // add_button
             // 
-            this.add_button.Location = new System.Drawing.Point(12, 124);
+            this.add_button.Location = new System.Drawing.Point(12, 148);
             this.add_button.Name = "add_button";
             this.add_button.Size = new System.Drawing.Size(75, 23);
             this.add_button.TabIndex = 5;
@@ -102,7 +102,7 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(594, 353);
+            this.ClientSize = new System.Drawing.Size(594, 368);
             this.ControlBox = false;
             this.Controls.Add(this.add_button);
             this.Controls.Add(this.remove_button);
