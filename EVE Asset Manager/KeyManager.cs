@@ -19,10 +19,9 @@ namespace HeavyDuck.Eve.AssetManager
             InitializeComponent();
 
             // set up key grid
-            GridHelper.Initialize(grid_keys, false);
+            GridHelper.Initialize(grid_keys, true);
             GridHelper.AddColumn(grid_keys, "userID", "User ID");
             GridHelper.AddColumn(grid_keys, "apiKey", "Full API Key");
-            grid_keys.AllowUserToAddRows = true;
             grid_keys.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid_keys.Columns["userID"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid_keys.DataSource = Program.ApiKeys;
@@ -43,8 +42,26 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.DisableClickToSort(grid_characters, false);
 
             // event handlers
+            add_button.Click += new EventHandler(add_button_Click);
             remove_button.Click += new EventHandler(remove_button_Click);
             refresh_button.Click += new EventHandler(refresh_button_Click);
+        }
+
+        private void add_button_Click(object sender, EventArgs e)
+        {
+            NewKeyDialog dialog = new NewKeyDialog();
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+            {
+                try
+                {
+                    Program.ApiKeys.LoadDataRow(new object[] { dialog.UserID, dialog.ApiKey }, true);
+                }
+                catch
+                {
+                    MessageBox.Show("You entered an invalid user ID or API key.", "Invalid Key", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
         }
 
         private void remove_button_Click(object sender, EventArgs e)

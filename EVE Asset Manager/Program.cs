@@ -11,7 +11,11 @@ namespace HeavyDuck.Eve.AssetManager
 {
     internal static class Program
     {
+        private const string CCP_DB_NAME = @"trinity_1.0_sqlite3.db";
+
         private static readonly string m_dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve");
+
+        private static string m_ccpDbPath;
 
         private static DataTable m_keys;
         private static DataTable m_characters;
@@ -25,6 +29,17 @@ namespace HeavyDuck.Eve.AssetManager
             // initialize styles and crap
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // look for the static data db
+            if (File.Exists(CCP_DB_NAME))
+                m_ccpDbPath = CCP_DB_NAME;
+            else if (File.Exists(Path.Combine(@"C:\Temp", CCP_DB_NAME)))
+                m_ccpDbPath = Path.Combine(@"C:\Temp", CCP_DB_NAME);
+            else
+            {
+                MessageBox.Show("Could not find the CCP database file. Please download it from http://dl.eve-files.com/media/0712/trinity_1.0_sqlite3.db.zip!", "Database Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             // prep the key table
             m_keys = new DataTable("Keys");
@@ -89,6 +104,11 @@ namespace HeavyDuck.Eve.AssetManager
         public static string DataPath
         {
             get { return m_dataPath; }
+        }
+
+        public static string CcpDatabasePath
+        {
+            get { return m_ccpDbPath; }
         }
 
         public static void RefreshCharacters()
