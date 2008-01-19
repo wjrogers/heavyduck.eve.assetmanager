@@ -20,6 +20,7 @@ namespace HeavyDuck.Eve.AssetManager
         private static readonly string m_connectionString = "Data Source=" + m_dbPath;
 
         private DataTable m_assets;
+        private ToolStripTextBox m_filter;
 
         public MainForm()
         {
@@ -35,20 +36,41 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.Initialize(grid, true);
             GridHelper.AddColumn(grid, "typeName", "Name");
             GridHelper.AddColumn(grid, "groupName", "Group");
+            GridHelper.AddColumn(grid, "characterName", "Owner");
             GridHelper.AddColumn(grid, "quantity", "Count");
             GridHelper.AddColumn(grid, "locationName", "Location");
             GridHelper.AddColumn(grid, "containerName", "Container");
             GridHelper.AddColumn(grid, "flagName", "Flag");
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid.Columns["typeName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns["characterName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns["quantity"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            grid.Columns["containerName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            grid.Columns["flagName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+
+            // set up the filter box
+            m_filter = new ToolStripTextBox("filter_box");
+            m_filter.Alignment = ToolStripItemAlignment.Right;
+            m_filter.TextChanged += new EventHandler(m_filter_TextChanged);
 
             // set up the toolbar
             toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
             toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
-            toolbar.Items.Add(new ToolStripSeparator());
-            toolbar.Items.Add(new ToolStripLabel("Filter:"));
-            toolbar.Items.Add(new ToolStripTextBox("filter_box"));
-            toolbar.Items.Add(new ToolStripButton("Apply", Properties.Resources.tick, ToolStripItem_Click, "apply_filter"));
+            toolbar.Items.Add(m_filter);
+            toolbar.Items.Add(new ToolStripLabel("Filter:", null, false, null, "filter_label"));
+            toolbar.Items["filter_label"].Alignment = ToolStripItemAlignment.Right;
+        }
+
+        private void m_filter_TextChanged(object sender, EventArgs e)
+        {
+            if (m_assets != null)
+            {
+                if (string.IsNullOrEmpty(m_filter.Text))
+                    m_assets.DefaultView.RowFilter = "";
+                else
+                    m_assets.DefaultView.RowFilter = string.Format("typeName LIKE '%{0}%' OR groupName LIKE '%{0}%' OR flagName LIKE '%{0}%'", m_filter.Text);
+            }
         }
 
         private void ToolStripItem_Click(object sender, EventArgs e)
@@ -60,6 +82,7 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 case "refresh":
                     m_assets = RefreshAssets();
+                    m_filter.Text = "";
                     grid.DataSource = m_assets;
                     break;
                 case "manage_keys":
@@ -72,22 +95,23 @@ namespace HeavyDuck.Eve.AssetManager
 
         private static DataTable RefreshAssets()
         {
-            List<string> assetFiles;
+            Dictionary<string, List<string>> assetFiles = new Dictionary<string, List<string>>();
 
             // make sure our character list is up to date
             Program.RefreshCharacters();
 
             // fetch the asset XML
-            assetFiles = new List<string>(Program.Characters.Rows.Count);
             foreach (DataRow row in Program.Characters.Rows)
             {
                 int userID = Convert.ToInt32(row["userID"]);
                 int characterID = Convert.ToInt32(row["characterID"]);
                 string apiKey = Program.ApiKeys.Rows.Find(userID)["apiKey"].ToString();
+                string characterName = row["characterName"].ToString();
 
                 try
                 {
-                    assetFiles.Add(EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID));
+                    if (!assetFiles.ContainsKey(characterName)) assetFiles[characterName] = new List<string>();
+                    assetFiles[characterName].Add(EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID));
                 }
                 catch (Exception ex)
                 {
@@ -107,15 +131,18 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // parse the files
-            foreach (string assetFile in assetFiles)
+            foreach (string characterName in assetFiles.Keys)
             {
-                try
+                foreach (string assetFile in assetFiles[characterName])
                 {
-                    ParseAssets(assetFile);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error parsing assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    try
+                    {
+                        ParseAssets(assetFile, characterName);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error parsing assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
 
@@ -151,6 +178,7 @@ namespace HeavyDuck.Eve.AssetManager
                 sql = new StringBuilder();
                 sql.Append("CREATE TABLE assets (");
                 sql.Append("itemID INT PRIMARY KEY,");
+                sql.Append("characterName STRING,");
                 sql.Append("locationID INT,");
                 sql.Append("typeID INT,");
                 sql.Append("quantity INT,");
@@ -210,7 +238,7 @@ namespace HeavyDuck.Eve.AssetManager
             return table;
         }
 
-        private static void ParseAssets(string filePath)
+        private static void ParseAssets(string filePath, string characterName)
         {
             SQLiteConnection conn = null;
             SQLiteCommand cmd = null;
@@ -226,8 +254,9 @@ namespace HeavyDuck.Eve.AssetManager
                 trans = conn.BeginTransaction();
 
                 // create the insertion command
-                cmd = new SQLiteCommand("INSERT INTO assets (itemID, locationID, typeID, quantity, flag, singleton, containerID) VALUES (@itemID, @locationID, @typeID, @quantity, @flag, @singleton, @containerID)", conn);
+                cmd = new SQLiteCommand("INSERT INTO assets (itemID, characterName, locationID, typeID, quantity, flag, singleton, containerID) VALUES (@itemID, @characterName, @locationID, @typeID, @quantity, @flag, @singleton, @containerID)", conn);
                 cmd.Parameters.Add("@itemID", DbType.Int64);
+                cmd.Parameters.AddWithValue("@characterName", characterName);
                 cmd.Parameters.Add("@locationID", DbType.Int64);
                 cmd.Parameters.Add("@typeID", DbType.Int32);
                 cmd.Parameters.Add("@quantity", DbType.Int32);
