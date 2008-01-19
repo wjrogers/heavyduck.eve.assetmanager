@@ -11,7 +11,7 @@ namespace HeavyDuck.Eve.AssetManager
 {
     internal static class Program
     {
-        private static readonly string m_keysPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve\keys.xml");
+        private static readonly string m_dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve");
 
         private static DataTable m_keys;
         private static DataTable m_characters;
@@ -32,11 +32,10 @@ namespace HeavyDuck.Eve.AssetManager
             m_keys.Columns.Add("apiKey", typeof(string));
             m_keys.PrimaryKey = new DataColumn[] { m_keys.Columns["userID"] };
 
-            // make sure the keys path exists
+            // make sure the data path exists
             try
             {
-                string dirPath = Path.GetDirectoryName(m_keysPath);
-                if (!Directory.Exists(dirPath)) Directory.CreateDirectory(dirPath);
+                if (!Directory.Exists(m_dataPath)) Directory.CreateDirectory(m_dataPath);
             }
             catch
             {
@@ -46,7 +45,8 @@ namespace HeavyDuck.Eve.AssetManager
             // load keys from disk
             try
             {
-                if (File.Exists(m_keysPath)) m_keys.ReadXml(m_keysPath);
+                string path = Path.Combine(m_dataPath, "keys.xml");
+                if (File.Exists(path)) m_keys.ReadXml(path);
             }
             catch (Exception ex)
             {
@@ -67,7 +67,8 @@ namespace HeavyDuck.Eve.AssetManager
             // save our API keys to disk
             try
             {
-                m_keys.WriteXml(m_keysPath);
+                string path = Path.Combine(m_dataPath, "keys.xml");
+                m_keys.WriteXml(path);
             }
             catch (Exception ex)
             {
@@ -83,6 +84,11 @@ namespace HeavyDuck.Eve.AssetManager
         public static DataTable Characters
         {
             get { return m_characters; }
+        }
+
+        public static string DataPath
+        {
+            get { return m_dataPath; }
         }
 
         public static void RefreshCharacters()
