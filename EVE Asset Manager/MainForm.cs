@@ -27,9 +27,6 @@ namespace HeavyDuck.Eve.AssetManager
 
             // attach menu event handlers
             this.Load += new EventHandler(MainForm_Load);
-            menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
-            menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
-            menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -44,22 +41,33 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "flagName", "Flag");
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid.Columns["typeName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+
+            // set up the toolbar
+            toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
+            toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
+            toolbar.Items.Add(new ToolStripSeparator());
+            toolbar.Items.Add(new ToolStripLabel("Filter:"));
+            toolbar.Items.Add(new ToolStripTextBox("filter_box"));
+            toolbar.Items.Add(new ToolStripButton("Apply", Properties.Resources.tick, ToolStripItem_Click, "apply_filter"));
         }
 
-        private void menu_file_exit_Click(object sender, EventArgs e)
+        private void ToolStripItem_Click(object sender, EventArgs e)
         {
-            this.Close();
-        }
+            ToolStripItem item = sender as ToolStripItem;
+            if (item == null) return;
 
-        private void menu_options_keys_Click(object sender, EventArgs e)
-        {
-            KeyManager.Show(this);
-        }
-
-        private void menu_options_refresh_Click(object sender, EventArgs e)
-        {
-            m_assets = RefreshAssets();
-            grid.DataSource = m_assets;
+            switch (item.Name)
+            {
+                case "refresh":
+                    m_assets = RefreshAssets();
+                    grid.DataSource = m_assets;
+                    break;
+                case "manage_keys":
+                    KeyManager.Show(this);
+                    break;
+                case "apply_filter":
+                    break;
+            }
         }
 
         private static DataTable RefreshAssets()
