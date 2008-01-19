@@ -20,14 +20,19 @@ namespace HeavyDuck.Eve.AssetManager
         private static readonly string m_connectionString = "Data Source=" + m_dbPath;
 
         private DataTable m_assets;
-        private ToolStripTextBox m_filter;
+        private List<WhereClause> m_clauses;
 
         public MainForm()
         {
             InitializeComponent();
 
+            // update the title with the version
+            this.Text += " " + Application.ProductVersion;
+
             // attach menu event handlers
             this.Load += new EventHandler(MainForm_Load);
+            search_button.Click += new EventHandler(search_button_Click);
+            reset_button.Click += new EventHandler(reset_button_Click);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -49,28 +54,9 @@ namespace HeavyDuck.Eve.AssetManager
             grid.Columns["containerName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["flagName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
 
-            // set up the filter box
-            m_filter = new ToolStripTextBox("filter_box");
-            m_filter.Alignment = ToolStripItemAlignment.Right;
-            m_filter.TextChanged += new EventHandler(m_filter_TextChanged);
-
             // set up the toolbar
             toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
             toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
-            toolbar.Items.Add(m_filter);
-            toolbar.Items.Add(new ToolStripLabel("Filter:", null, false, null, "filter_label"));
-            toolbar.Items["filter_label"].Alignment = ToolStripItemAlignment.Right;
-        }
-
-        private void m_filter_TextChanged(object sender, EventArgs e)
-        {
-            if (m_assets != null)
-            {
-                if (string.IsNullOrEmpty(m_filter.Text))
-                    m_assets.DefaultView.RowFilter = "";
-                else
-                    m_assets.DefaultView.RowFilter = string.Format("typeName LIKE '%{0}%' OR groupName LIKE '%{0}%' OR flagName LIKE '%{0}%'", m_filter.Text);
-            }
         }
 
         private void ToolStripItem_Click(object sender, EventArgs e)
@@ -82,12 +68,21 @@ namespace HeavyDuck.Eve.AssetManager
             switch (item.Name)
             {
                 case "refresh":
-                    dialog = new ProgressDialog();
-                    dialog.AddTask(RefreshAssets);
-                    dialog.Show();
+                    // refresh our asset data from EVE
+                    try
+                    {
+                        dialog = new ProgressDialog();
+                        dialog.AddTask(RefreshAssets);
+                        dialog.Show();
+                    }
+                    catch (ProgressException ex)
+                    {
+                        MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
 
-                    m_filter.Text = "";
-                    grid.DataSource = m_assets;
+                    // re-run the query
+                    RunQuery();
 
                     break;
                 case "manage_keys":
@@ -95,6 +90,58 @@ namespace HeavyDuck.Eve.AssetManager
                     break;
                 case "apply_filter":
                     break;
+            }
+        }
+
+        private void reset_button_Click(object sender, EventArgs e)
+        {
+            // clear all the search boxes
+            search_name.Text = "";
+            search_group.Text = "";
+            search_location.Text = "";
+            search_owner.Text = "";
+        }
+
+        private void search_button_Click(object sender, EventArgs e)
+        {
+            RunQuery();
+        }
+
+        private void BuildWhereClause()
+        {
+            List<WhereClause> clauses = new List<WhereClause>();
+
+            if (!string.IsNullOrEmpty(search_name.Text))
+                clauses.Add(new WhereClause("t.typeName LIKE '%' || @searchName || '%'", "@searchName", search_name.Text));
+            if (!string.IsNullOrEmpty(search_group.Text))
+                clauses.Add(new WhereClause("g.groupName LIKE '%' || @searchGroup || '%'", "@searchGroup", search_group.Text));
+            if (!string.IsNullOrEmpty(search_location.Text))
+                clauses.Add(new WhereClause("COALESCE(l.itemName, cl.itemName) LIKE '%' || @searchLocation || '%'", "@searchLocation", search_location.Text));
+            if (!string.IsNullOrEmpty(search_owner.Text))
+                clauses.Add(new WhereClause("a.characterName LIKE '%' || @searchOwner || '%'", "@searchOwner", search_owner.Text));
+
+            m_clauses = clauses;
+        }
+
+        private void RunQuery()
+        {
+            ProgressDialog dialog;
+
+            // update our internal representation of the search boxes
+            BuildWhereClause();
+
+            // run the query on the asset database again
+            try
+            {
+                dialog = new ProgressDialog();
+                dialog.AddTask(GetAssetTable);
+                dialog.Show();
+
+                grid.DataSource = m_assets;
+            }
+            catch (ProgressException ex)
+            {
+                MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -162,18 +209,6 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
             dialog.Advance();
-
-            // load the data
-            dialog.Update("Loading asset data...");
-            try
-            {
-                m_assets = GetAssetTable();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to query the asset data:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            dialog.Advance();
         }
 
         private static void InitializeDB()
@@ -216,10 +251,13 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private static DataTable GetAssetTable()
+        private void GetAssetTable(IProgressDialog dialog)
         {
             StringBuilder sql;
             DataTable table = new DataTable("Assets");
+
+            // update dialog
+            dialog.Update("Querying asset database...", 0, 1);
 
             // connect to our lovely database
             using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
@@ -248,13 +286,40 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.invTypes ct ON ct.typeID = c.typeID ");
                 sql.Append("LEFT JOIN eve.eveNames cl ON cl.itemID = c.locationID ");
 
-                // create adapter and fill our table
-                using (SQLiteDataAdapter adapter = new SQLiteDataAdapter(sql.ToString(), conn))
-                    adapter.Fill(table);
+                // add where stuff
+                if (m_clauses != null && m_clauses.Count > 0)
+                {
+                    List<string> clauses = new List<string>(m_clauses.Count);
+
+                    foreach (WhereClause clause in m_clauses)
+                        clauses.Add(clause.Clause);
+
+                    sql.Append("WHERE ");
+                    sql.Append(string.Join(" AND ", clauses.ToArray()));
+                }
+
+                // start the command we will use
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    // set the command text to our laboriously built sql string
+                    cmd.CommandText = sql.ToString();
+
+                    // add parameters for the user-entered where clauses
+                    if (m_clauses != null)
+                    {
+                        foreach (WhereClause clause in m_clauses)
+                            cmd.Parameters.AddWithValue(clause.ParameterName, clause.ParameterValue);
+                    }
+
+                    // create adapter and fill our table
+                    using (SQLiteDataAdapter adapter = new SQLiteDataAdapter(cmd))
+                        adapter.Fill(table);
+                }
             }
 
             // yay
-            return table;
+            m_assets = table;
+            dialog.Advance();
         }
 
         private static void ParseAssets(string filePath, string characterName)
@@ -336,6 +401,35 @@ namespace HeavyDuck.Eve.AssetManager
             while (contentIter.MoveNext())
             {
                 ProcessNode(contentIter.Current, insertCmd, itemID);
+            }
+        }
+
+        private class WhereClause
+        {
+            private string m_clause;
+            private string m_parameterName;
+            private string m_parameterValue;
+
+            public WhereClause(string clause, string parameterName, string parameterValue)
+            {
+                m_clause = clause;
+                m_parameterName = parameterName;
+                m_parameterValue = parameterValue;
+            }
+
+            public string Clause
+            {
+                get { return m_clause; }
+            }
+
+            public string ParameterName
+            {
+                get { return m_parameterName; }
+            }
+
+            public string ParameterValue
+            {
+                get { return m_parameterValue; }
             }
         }
     }
