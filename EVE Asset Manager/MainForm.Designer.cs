@@ -53,7 +53,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.grid.Location = new System.Drawing.Point(0, 167);
             this.grid.Name = "grid";
             this.grid.Size = new System.Drawing.Size(772, 389);
-            this.grid.TabIndex = 1;
+            this.grid.TabIndex = 2;
             // 
             // toolbar
             // 
@@ -63,7 +63,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.toolbar.Padding = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.toolbar.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             this.toolbar.Size = new System.Drawing.Size(772, 25);
-            this.toolbar.TabIndex = 2;
+            this.toolbar.TabIndex = 0;
             // 
             // search_panel
             // 
@@ -81,7 +81,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.search_panel.Location = new System.Drawing.Point(0, 25);
             this.search_panel.Name = "search_panel";
             this.search_panel.Size = new System.Drawing.Size(772, 142);
-            this.search_panel.TabIndex = 3;
+            this.search_panel.TabIndex = 1;
             // 
             // reset_button
             // 

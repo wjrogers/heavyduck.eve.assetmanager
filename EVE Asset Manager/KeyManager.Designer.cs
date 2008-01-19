@@ -54,7 +54,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.refresh_button.Location = new System.Drawing.Point(470, 148);
             this.refresh_button.Name = "refresh_button";
             this.refresh_button.Size = new System.Drawing.Size(112, 23);
-            this.refresh_button.TabIndex = 1;
+            this.refresh_button.TabIndex = 3;
             this.refresh_button.Text = "Refresh Characters";
             this.refresh_button.UseVisualStyleBackColor = true;
             // 
@@ -67,7 +67,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.grid_characters.Location = new System.Drawing.Point(12, 177);
             this.grid_characters.Name = "grid_characters";
             this.grid_characters.Size = new System.Drawing.Size(570, 150);
-            this.grid_characters.TabIndex = 2;
+            this.grid_characters.TabIndex = 4;
             // 
             // done_button
             // 
@@ -76,7 +76,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.done_button.Location = new System.Drawing.Point(507, 333);
             this.done_button.Name = "done_button";
             this.done_button.Size = new System.Drawing.Size(75, 23);
-            this.done_button.TabIndex = 3;
+            this.done_button.TabIndex = 5;
             this.done_button.Text = "Done";
             this.done_button.UseVisualStyleBackColor = true;
             // 
@@ -85,7 +85,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.remove_button.Location = new System.Drawing.Point(93, 148);
             this.remove_button.Name = "remove_button";
             this.remove_button.Size = new System.Drawing.Size(75, 23);
-            this.remove_button.TabIndex = 4;
+            this.remove_button.TabIndex = 2;
             this.remove_button.Text = "Remove";
             this.remove_button.UseVisualStyleBackColor = true;
             // 
@@ -94,7 +94,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.add_button.Location = new System.Drawing.Point(12, 148);
             this.add_button.Name = "add_button";
             this.add_button.Size = new System.Drawing.Size(75, 23);
-            this.add_button.TabIndex = 5;
+            this.add_button.TabIndex = 1;
             this.add_button.Text = "Add";
             this.add_button.UseVisualStyleBackColor = true;
             // 
