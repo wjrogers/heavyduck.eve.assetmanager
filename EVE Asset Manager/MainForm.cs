@@ -16,24 +16,24 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public partial class MainForm : Form
     {
-        private static readonly string m_dbPath = Path.Combine(Program.DataPath, "assets.db");
-        private static readonly string m_connectionString = "Data Source=" + m_dbPath;
-
         private DataTable m_assets;
         private List<WhereClause> m_clauses;
-        private ToolStripLabel m_count_label;
+        private ToolStripLabel m_countLabel;
+        private List<SearchClauseControl> m_searchControls;
 
         public MainForm()
         {
             InitializeComponent();
 
+            // member initialization
+            m_searchControls = new List<SearchClauseControl>();
+
             // update the title with the version
             this.Text += " " + Application.ProductVersion;
 
-            // attach menu event handlers
+            // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
-            search_button.Click += new EventHandler(search_button_Click);
-            reset_button.Click += new EventHandler(reset_button_Click);
+            this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -48,28 +48,44 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "locationName", "Location");
             GridHelper.AddColumn(grid, "containerName", "Container");
             GridHelper.AddColumn(grid, "flagName", "Flag");
-            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            grid.Columns["typeName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid.Columns["categoryName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid.Columns["characterName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid.Columns["quantity"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            grid.Columns["containerName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid.Columns["flagName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
 
             // the label for counting assets
-            m_count_label = new ToolStripLabel();
-            m_count_label.Name = "count_label";
-            m_count_label.Alignment = ToolStripItemAlignment.Right;
-            m_count_label.Text = "0 assets";
+            m_countLabel = new ToolStripLabel();
+            m_countLabel.Name = "count_label";
+            m_countLabel.Alignment = ToolStripItemAlignment.Right;
+            m_countLabel.Text = "0 assets";
 
             // set up the toolbar
+            toolbar.Items.Add(new ToolStripButton("Query", Properties.Resources.magnifier, ToolStripItem_Click, "query"));
+            toolbar.Items.Add(new ToolStripButton("Add Field", Properties.Resources.add, ToolStripItem_Click, "add_field"));
+            toolbar.Items.Add(new ToolStripButton("Reset Fields", Properties.Resources.page_white, ToolStripItem_Click, "reset_fields"));
+            toolbar.Items.Add(new ToolStripSeparator());
             toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
             toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
-            toolbar.Items.Add(m_count_label);
+            toolbar.Items.Add(m_countLabel);
 
-            // initialize the count label
+            // toolbar tooltips
+            toolbar.Items["refresh"].ToolTipText = "Update your asset data from the EVE API";
+            toolbar.Items["manage_keys"].ToolTipText = "Add or remove API keys";
+            toolbar.Items["query"].ToolTipText = "Search your assets using the criteria in the fields below";
+            toolbar.Items["add_field"].ToolTipText = "Add another search field";
+            toolbar.Items["reset_fields"].ToolTipText = "Reset all the search fields";
+
+            // initialize the UI with stuff
+            InitializeSearchControls();
             UpdateAssetCount();
+        }
+
+
+        private void MainForm_KeyUp(object sender, KeyEventArgs e)
+        {
+            // auto-hook enter on a search control to mean query
+            if (e.KeyCode == Keys.Enter && this.ActiveControl is SearchClauseControl)
+            {
+                e.Handled = true;
+                this.BeginInvoke((MethodInvoker)RunQuery);
+            }
         }
 
         private void ToolStripItem_Click(object sender, EventArgs e)
@@ -101,39 +117,138 @@ namespace HeavyDuck.Eve.AssetManager
                 case "manage_keys":
                     KeyManager.Show(this);
                     break;
-                case "apply_filter":
+                case "query":
+                    RunQuery();
+                    break;
+                case "add_field":
+                    AddSearchControl();
+                    UpdateSearchPanel();
+                    break;
+                case "reset_fields":
+                    InitializeSearchControls();
                     break;
             }
         }
 
-        private void reset_button_Click(object sender, EventArgs e)
+        private void searchControl_RemoveClicked(object sender, EventArgs e)
         {
-            // clear all the search boxes
-            search_name.Text = "";
-            search_group.Text = "";
-            search_location.Text = "";
-            search_owner.Text = "";
-        }
+            SearchClauseControl control = sender as SearchClauseControl;
 
-        private void search_button_Click(object sender, EventArgs e)
-        {
-            RunQuery();
+            RemoveSearchControl(control);
+            m_searchControls.Remove(control);
+            UpdateSearchPanel();
         }
 
         private void BuildWhereClause()
         {
             List<WhereClause> clauses = new List<WhereClause>();
 
-            if (!string.IsNullOrEmpty(search_name.Text))
-                clauses.Add(new WhereClause("t.typeName LIKE '%' || @searchName || '%'", "@searchName", search_name.Text));
-            if (!string.IsNullOrEmpty(search_group.Text))
-                clauses.Add(new WhereClause("g.groupName LIKE '%' || @searchGroup || '%'", "@searchGroup", search_group.Text));
-            if (!string.IsNullOrEmpty(search_location.Text))
-                clauses.Add(new WhereClause("COALESCE(l.itemName, cl.itemName) LIKE '%' || @searchLocation || '%'", "@searchLocation", search_location.Text));
-            if (!string.IsNullOrEmpty(search_owner.Text))
-                clauses.Add(new WhereClause("a.characterName LIKE '%' || @searchOwner || '%'", "@searchOwner", search_owner.Text));
+            foreach (SearchClauseControl control in m_searchControls)
+            {
+                SearchClauseControl.SearchField field = control.SelectedField;
+                SearchClauseControl.ComparisonOp op = control.SelectedComparisonOp;
+                string parameterName = field.GetParameterName();
+                string format;
+                object value = control.Value;
+
+                // sanity check
+                if (value == null) continue;
+
+                // contruct the basic format of the clause
+                switch (op)
+                {
+                    case SearchClauseControl.ComparisonOp.Equals:
+                        format = "{0} = {1}";
+                        break;
+                    case SearchClauseControl.ComparisonOp.NotEquals:
+                        format = "{0} <> {1}";
+                        break;
+                    case SearchClauseControl.ComparisonOp.Like:
+                        format = "{0} LIKE '%' || {1} || '%'";
+                        break;
+                    case SearchClauseControl.ComparisonOp.NotLike:
+                        format = "{0} NOT LIKE '%' || {1} || '%'";
+                        break;
+                    default:
+                        throw new InvalidOperationException("Don't know how to construct where clause for ComparisonOp" + op);
+                }
+
+                // fill it
+                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), parameterName, value));
+            }
 
             m_clauses = clauses;
+        }
+
+        private void InitializeSearchControls()
+        {
+            // remove any in there
+            foreach (SearchClauseControl control in m_searchControls)
+            {
+                RemoveSearchControl(control);
+            }
+            m_searchControls.Clear();
+
+            // add three
+            AddSearchControl("Name");
+            AddSearchControl("Owner");
+            AddSearchControl("Location");
+
+            // update the panel
+            UpdateSearchPanel();
+        }
+
+        private void AddSearchControl()
+        {
+            AddSearchControl(new SearchClauseControl());
+        }
+
+        private void AddSearchControl(string fieldName)
+        {
+            AddSearchControl(new SearchClauseControl(fieldName));
+        }
+
+        private void AddSearchControl(SearchClauseControl control)
+        {
+            // initialize the control
+            control.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            control.Location = new Point(12, 6 + m_searchControls.Count * 27);
+            control.Width = search_panel.Width - 24;
+
+            // add to the panel
+            m_searchControls.Add(control);
+            search_panel.Controls.Add(control);
+
+            // add the click handler
+            control.RemoveClicked += new EventHandler(searchControl_RemoveClicked);
+        }
+
+        private void RemoveSearchControl(SearchClauseControl control)
+        {
+            search_panel.Controls.Remove(control);
+            control.RemoveClicked -= searchControl_RemoveClicked;
+            control.Dispose();
+        }
+
+        private void UpdateSearchPanel()
+        {
+            // make all the proper widgets visible (or not) and in the correct locations
+            if (m_searchControls.Count > 0)
+            {
+                m_searchControls[0].BooleanComboVisible = false;
+                m_searchControls[0].RemoveButtonVisible = m_searchControls.Count > 1;
+                m_searchControls[0].Location = new Point(12, 6);
+                m_searchControls[0].SelectedBooleanOp = SearchClauseControl.BooleanOp.And;
+            }
+            for (int i = 1; i < m_searchControls.Count; ++i)
+            {
+                m_searchControls[i].BooleanComboVisible = true;
+                m_searchControls[i].RemoveButtonVisible = m_searchControls.Count > 1;
+                m_searchControls[i].Location = new Point(12, 6 + i * 27);
+            }
+
+            // size the panel correctly
+            search_panel.Height = 6 + m_searchControls.Count * 27;
         }
 
         private void UpdateAssetCount()
@@ -141,7 +256,7 @@ namespace HeavyDuck.Eve.AssetManager
             int total = 0;
 
             // count the total number of assets in the local db
-            using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
+            using (SQLiteConnection conn = new SQLiteConnection(Program.ConnectionString))
             {
                 conn.Open();
 
@@ -161,9 +276,9 @@ namespace HeavyDuck.Eve.AssetManager
 
             // update the label
             if (m_assets != null)
-                m_count_label.Text = string.Format("showing {0:#,##0} assets (of {1:#,##0})", m_assets.Rows.Count, total);
+                m_countLabel.Text = string.Format("showing {0:#,##0} assets (of {1:#,##0})", m_assets.Rows.Count, total);
             else
-                m_count_label.Text = string.Format("{0:#,##0} assets cached", total);
+                m_countLabel.Text = string.Format("{0:#,##0} assets cached", total);
         }
 
         private void RunQuery()
@@ -181,6 +296,7 @@ namespace HeavyDuck.Eve.AssetManager
                 dialog.Show();
 
                 grid.DataSource = m_assets;
+                grid.AutoResizeColumns();
                 UpdateAssetCount();
             }
             catch (ProgressException ex)
@@ -227,7 +343,7 @@ namespace HeavyDuck.Eve.AssetManager
             dialog.Update("Initializing local asset database...");
             try
             {
-                InitializeDB();
+                Program.InitializeDB();
             }
             catch (Exception ex)
             {
@@ -255,46 +371,6 @@ namespace HeavyDuck.Eve.AssetManager
             dialog.Advance();
         }
 
-        private static void InitializeDB()
-        {
-            SQLiteConnection conn = null;
-            SQLiteCommand cmd = null;
-            StringBuilder sql;
-
-            // delete any existing file
-            if (File.Exists(m_dbPath)) File.Delete(m_dbPath);
-           
-            // let's connect
-            try
-            {
-                // connect to our brand new database
-                conn = new SQLiteConnection(m_connectionString);
-                conn.Open();
-
-                // let's build up a create table statement
-                sql = new StringBuilder();
-                sql.Append("CREATE TABLE assets (");
-                sql.Append("itemID INT PRIMARY KEY,");
-                sql.Append("characterName STRING,");
-                sql.Append("locationID INT,");
-                sql.Append("typeID INT,");
-                sql.Append("quantity INT,");
-                sql.Append("flag INT,");
-                sql.Append("singleton BOOL,");
-                sql.Append("containerID INT");
-                sql.Append(")");
-
-                // create our command and create the table
-                cmd = new SQLiteCommand(sql.ToString(), conn);
-                cmd.ExecuteNonQuery();
-            }
-            finally
-            {
-                if (cmd != null) cmd.Dispose();
-                if (conn != null) conn.Dispose();
-            }
-        }
-
         private void GetAssetTable(IProgressDialog dialog)
         {
             StringBuilder sql;
@@ -304,7 +380,7 @@ namespace HeavyDuck.Eve.AssetManager
             dialog.Update("Querying asset database...", 0, 1);
 
             // connect to our lovely database
-            using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
+            using (SQLiteConnection conn = new SQLiteConnection(Program.ConnectionString))
             {
                 conn.Open();
 
@@ -376,7 +452,7 @@ namespace HeavyDuck.Eve.AssetManager
             try
             {
                 // create and open the connection
-                conn = new SQLiteConnection(m_connectionString);
+                conn = new SQLiteConnection(Program.ConnectionString);
                 conn.Open();
 
                 // start the transaction
@@ -453,9 +529,9 @@ namespace HeavyDuck.Eve.AssetManager
         {
             private string m_clause;
             private string m_parameterName;
-            private string m_parameterValue;
+            private object m_parameterValue;
 
-            public WhereClause(string clause, string parameterName, string parameterValue)
+            public WhereClause(string clause, string parameterName, object parameterValue)
             {
                 m_clause = clause;
                 m_parameterName = parameterName;
@@ -472,7 +548,7 @@ namespace HeavyDuck.Eve.AssetManager
                 get { return m_parameterName; }
             }
 
-            public string ParameterValue
+            public object ParameterValue
             {
                 get { return m_parameterValue; }
             }

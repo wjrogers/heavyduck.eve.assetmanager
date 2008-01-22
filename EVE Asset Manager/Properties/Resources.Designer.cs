@@ -60,6 +60,13 @@ namespace HeavyDuck.Eve.AssetManager.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap add {
+            get {
+                object obj = ResourceManager.GetObject("add", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         internal static System.Drawing.Bitmap arrow_refresh {
             get {
                 object obj = ResourceManager.GetObject("arrow_refresh", resourceCulture);
@@ -67,9 +74,30 @@ namespace HeavyDuck.Eve.AssetManager.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap delete {
+            get {
+                object obj = ResourceManager.GetObject("delete", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         internal static System.Drawing.Bitmap key {
             get {
                 object obj = ResourceManager.GetObject("key", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap magnifier {
+            get {
+                object obj = ResourceManager.GetObject("magnifier", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap page_white {
+            get {
+                object obj = ResourceManager.GetObject("page_white", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
