@@ -78,6 +78,10 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="SearchClauseControl.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>SearchClauseControl.cs</DependentUpon>
+    </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
@@ -91,6 +95,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="SearchClauseControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SearchClauseControl.Designer.cs">
+      <DependentUpon>SearchClauseControl.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -113,6 +123,10 @@
     <None Include="Resources\tick.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\delete.png" />
+    <None Include="Resources\magnifier.png" />
+    <None Include="Resources\page_white.png" />
+    <None Include="Resources\add.png" />
     <Content Include="treasure-chest.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

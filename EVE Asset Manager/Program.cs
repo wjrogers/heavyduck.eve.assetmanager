@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SQLite;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
@@ -14,6 +16,8 @@ namespace HeavyDuck.Eve.AssetManager
         private const string CCP_DB_NAME = @"trinity_1.0_sqlite3.db";
 
         private static readonly string m_dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve");
+        private static readonly string m_dbPath = Path.Combine(Program.DataPath, "assets.db");
+        private static readonly string m_connectionString = "Data Source=" + m_dbPath;
 
         private static string m_ccpDbPath;
 
@@ -32,9 +36,13 @@ namespace HeavyDuck.Eve.AssetManager
 
             // look for the static data db
             if (File.Exists(CCP_DB_NAME))
+            {
                 m_ccpDbPath = CCP_DB_NAME;
+            }
             else if (File.Exists(Path.Combine(@"C:\Temp", CCP_DB_NAME)))
+            {
                 m_ccpDbPath = Path.Combine(@"C:\Temp", CCP_DB_NAME);
+            }
             else
             {
                 MessageBox.Show("Could not find the CCP database file. Please download it from http://dl.eve-files.com/media/0712/trinity_1.0_sqlite3.db.zip!", "Database Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -106,9 +114,59 @@ namespace HeavyDuck.Eve.AssetManager
             get { return m_dataPath; }
         }
 
+        public static string LocalDatabasePath
+        {
+            get { return m_dbPath; }
+        }
+
         public static string CcpDatabasePath
         {
             get { return m_ccpDbPath; }
+        }
+
+        public static string ConnectionString
+        {
+            get { return m_connectionString; }
+        }
+
+        public static void InitializeDB()
+        {
+            SQLiteConnection conn = null;
+            SQLiteCommand cmd = null;
+            StringBuilder sql;
+
+            // delete any existing file
+            if (File.Exists(LocalDatabasePath)) File.Delete(LocalDatabasePath);
+           
+            // let's connect
+            try
+            {
+                // connect to our brand new database
+                conn = new SQLiteConnection(ConnectionString);
+                conn.Open();
+
+                // let's build up a create table statement
+                sql = new StringBuilder();
+                sql.Append("CREATE TABLE assets (");
+                sql.Append("itemID INT PRIMARY KEY,");
+                sql.Append("characterName STRING,");
+                sql.Append("locationID INT,");
+                sql.Append("typeID INT,");
+                sql.Append("quantity INT,");
+                sql.Append("flag INT,");
+                sql.Append("singleton BOOL,");
+                sql.Append("containerID INT");
+                sql.Append(")");
+
+                // create our command and create the table
+                cmd = new SQLiteCommand(sql.ToString(), conn);
+                cmd.ExecuteNonQuery();
+            }
+            finally
+            {
+                if (cmd != null) cmd.Dispose();
+                if (conn != null) conn.Dispose();
+            }
         }
 
         public static void RefreshCharacters()
