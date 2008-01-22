@@ -191,8 +191,6 @@ namespace HeavyDuck.Eve.AssetManager
 
             // add three
             AddSearchControl("Name");
-            AddSearchControl("Owner");
-            AddSearchControl("Location");
 
             // update the panel
             UpdateSearchPanel();
@@ -235,14 +233,11 @@ namespace HeavyDuck.Eve.AssetManager
             // make all the proper widgets visible (or not) and in the correct locations
             if (m_searchControls.Count > 0)
             {
-                m_searchControls[0].BooleanComboVisible = false;
                 m_searchControls[0].RemoveButtonVisible = m_searchControls.Count > 1;
                 m_searchControls[0].Location = new Point(12, 6);
-                m_searchControls[0].SelectedBooleanOp = SearchClauseControl.BooleanOp.And;
             }
             for (int i = 1; i < m_searchControls.Count; ++i)
             {
-                m_searchControls[i].BooleanComboVisible = true;
                 m_searchControls[i].RemoveButtonVisible = m_searchControls.Count > 1;
                 m_searchControls[i].Location = new Point(12, 6 + i * 27);
             }
