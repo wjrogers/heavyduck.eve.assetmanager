@@ -290,7 +290,7 @@ namespace HeavyDuck.Eve.AssetManager
                 dialog.AddTask(GetAssetTable);
                 dialog.Show();
 
-                grid.DataSource = m_assets;
+                grid.DataSource = m_assets.DefaultView;
                 grid.AutoResizeColumns();
                 UpdateAssetCount();
             }
@@ -454,6 +454,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // yay
             m_assets = table;
+            m_assets.DefaultView.Sort = "typeName ASC";
             dialog.Advance();
         }
 
