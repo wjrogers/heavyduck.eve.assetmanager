@@ -302,7 +302,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void RefreshAssets(IProgressDialog dialog)
         {
-            Dictionary<string, List<string>> assetFiles = new Dictionary<string, List<string>>();
+            Dictionary<string, string> assetFiles = new Dictionary<string, string>();
 
             // clear the assets and set our dialog value/max
             m_assets = null;
@@ -319,17 +319,37 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 int userID = Convert.ToInt32(row["userID"]);
                 int characterID = Convert.ToInt32(row["characterID"]);
+                int corporationID = Convert.ToInt32(row["corporationID"]);
                 string apiKey = Program.ApiKeys.Rows.Find(userID)["apiKey"].ToString();
                 string characterName = row["name"].ToString();
+                string corporationName = row["corporationName"].ToString();
 
+                // fetch character assets
                 try
                 {
-                    if (!assetFiles.ContainsKey(characterName)) assetFiles[characterName] = new List<string>();
-                    assetFiles[characterName].Add(EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID));
+                    if (!assetFiles.ContainsKey(characterName))
+                        assetFiles[characterName] = EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID);
+                    else
+                        System.Diagnostics.Debug.WriteLine("Odd, got two records for the same character name... " + characterName);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("Error retrieving assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                // fetch corporation assets?
+                try
+                {
+                    if (!assetFiles.ContainsKey(corporationName))
+                        assetFiles[corporationName] = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
+                }
+                catch (Exception ex)
+                {
+                    // we don't care about errors due to inadequate permissions
+                    if (ex is EveApiException && ((EveApiException)ex).ErrorCode == 209)
+                        System.Diagnostics.Debug.WriteLine(characterName + " is not a Director or CEO of " + corporationName + ".");
+                    else
+                        MessageBox.Show("Error retrieving corp assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             dialog.Advance();
@@ -351,16 +371,15 @@ namespace HeavyDuck.Eve.AssetManager
             dialog.Update("Parsing asset XML...");
             foreach (string characterName in assetFiles.Keys)
             {
-                foreach (string assetFile in assetFiles[characterName])
+                string assetFile = assetFiles[characterName];
+
+                try
                 {
-                    try
-                    {
-                        ParseAssets(assetFile, characterName);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Error parsing assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    ParseAssets(assetFile, characterName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error parsing assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             dialog.Advance();
