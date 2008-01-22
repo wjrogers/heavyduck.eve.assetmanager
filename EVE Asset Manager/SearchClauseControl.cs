@@ -11,6 +11,8 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public partial class SearchClauseControl : UserControl
     {
+        #region Static Initialization
+
         private static List<SearchField> m_fields;
 
         static SearchClauseControl()
@@ -58,6 +60,8 @@ namespace HeavyDuck.Eve.AssetManager
             return table;
         }
 
+        #endregion
+
         private Control m_edit_control = null;
         private DataTable m_op_table;
 
@@ -82,11 +86,6 @@ namespace HeavyDuck.Eve.AssetManager
             op_combo.DisplayMember = "name";
             op_combo.ValueMember = "operator";
             op_combo.DataSource = m_op_table;
-
-            // initialize boolean drop-down
-            foreach (BooleanOp op in Enum.GetValues(typeof(BooleanOp)))
-                boolean_combo.Items.Add(op);
-            boolean_combo.SelectedIndex = 0;
 
             // initialize field drop-down
             foreach (SearchField field in m_fields)
@@ -150,12 +149,9 @@ namespace HeavyDuck.Eve.AssetManager
                 handler(this, e);
         }
 
-        public BooleanOp SelectedBooleanOp
-        {
-            get { return (BooleanOp)boolean_combo.SelectedValue; }
-            set { boolean_combo.SelectedValue = value; }
-        }
-
+        /// <summary>
+        /// Gets the selected comparison operator.
+        /// </summary>
         public ComparisonOp SelectedComparisonOp
         {
             get { return (ComparisonOp)op_combo.SelectedValue; }
@@ -194,15 +190,6 @@ namespace HeavyDuck.Eve.AssetManager
                 // now return it
                 return value;
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the visibility of the And/Or combo box.
-        /// </summary>
-        public bool BooleanComboVisible
-        {
-            get { return boolean_combo.Visible; }
-            set { boolean_combo.Visible = value; }
         }
 
         /// <summary>
