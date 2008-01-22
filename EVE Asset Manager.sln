@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual C# Express 2005
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EVE Asset Manager", "EVE Asset Manager\EVE Asset Manager.csproj", "{0706BA80-362F-4F6F-A583-63923F92695F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeavyDuck.Utilities", "..\HeavyDuck.Utilities\HeavyDuck.Utilities\HeavyDuck.Utilities.csproj", "{A62FD464-5C47-4AB4-96F3-44F49BABE959}"
