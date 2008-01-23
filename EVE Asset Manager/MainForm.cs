@@ -324,6 +324,7 @@ namespace HeavyDuck.Eve.AssetManager
                 string apiKey = Program.ApiKeys.Rows.Find(userID)["apiKey"].ToString();
                 string characterName = row["name"].ToString();
                 string corporationName = row["corporationName"].ToString();
+                bool queryCorp = Convert.ToBoolean(row["queryCorp"]);
 
                 // fetch character assets
                 try
@@ -341,16 +342,21 @@ namespace HeavyDuck.Eve.AssetManager
                 // fetch corporation assets?
                 try
                 {
-                    if (!assetFiles.ContainsKey(corporationName))
+                    if (queryCorp && !assetFiles.ContainsKey(corporationName))
                         assetFiles[corporationName] = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
                 }
                 catch (Exception ex)
                 {
-                    // we don't care about errors due to inadequate permissions
+                    // we don't care about errors due to inadequate permissions, but we will switch off corp data for this character
                     if (ex is EveApiException && ((EveApiException)ex).ErrorCode == 209)
+                    {
                         System.Diagnostics.Debug.WriteLine(characterName + " is not a Director or CEO of " + corporationName + ".");
+                        row["queryCorp"] = false;
+                    }
                     else
+                    {
                         MessageBox.Show("Error retrieving corp assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
             dialog.Advance();
