@@ -48,6 +48,7 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "locationName", "Location");
             GridHelper.AddColumn(grid, "containerName", "Container");
             GridHelper.AddColumn(grid, "flagName", "Flag");
+            GridHelper.AddColumn(grid, "itemID", "ID");
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
             // the label for counting assets
@@ -409,7 +410,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName AS containerName, COALESCE(l.itemName, cl.itemName) AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, COALESCE(l.itemName, cl.itemName) AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
