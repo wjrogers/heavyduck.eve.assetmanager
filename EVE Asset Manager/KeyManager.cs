@@ -28,13 +28,17 @@ namespace HeavyDuck.Eve.AssetManager
             grid_keys.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             // set up character grid
-            GridHelper.Initialize(grid_characters, true);
+            GridHelper.Initialize(grid_characters, false);
             GridHelper.AddColumn(grid_characters, "userID", "User ID");
             GridHelper.AddColumn(grid_characters, "name", "Name");
-            GridHelper.AddColumn(grid_characters, "characterID", "Character ID");
             GridHelper.AddColumn(grid_characters, "corporationName", "Corporation");
-            GridHelper.AddColumn(grid_characters, "corporationID", "Corp ID");
-            grid_characters.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            GridHelper.AddColumn(grid_characters, new DataGridViewCheckBoxColumn(), "queryCorp", "Query Corp Assets?");
+            grid_characters.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            grid_characters.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            grid_characters.Columns["userID"].ReadOnly = true;
+            grid_characters.Columns["name"].ReadOnly = true;
+            grid_characters.Columns["corporationName"].ReadOnly = true;
+            grid_characters.Columns["corporationName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             grid_characters.DataSource = Program.Characters;
 
             // no sorty-sort arrows

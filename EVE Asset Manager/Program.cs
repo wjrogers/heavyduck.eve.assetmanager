@@ -55,6 +55,16 @@ namespace HeavyDuck.Eve.AssetManager
             m_keys.Columns.Add("apiKey", typeof(string));
             m_keys.PrimaryKey = new DataColumn[] { m_keys.Columns["userID"] };
 
+            // prep the characters table
+            m_characters = new DataTable("Characters");
+            m_characters.Columns.Add("userID", typeof(int));
+            m_characters.Columns.Add("name", typeof(string));
+            m_characters.Columns.Add("characterID", typeof(int));
+            m_characters.Columns.Add("corporationName", typeof(string));
+            m_characters.Columns.Add("corporationID", typeof(int));
+            m_characters.Columns.Add("queryCorp", typeof(bool));
+            m_characters.PrimaryKey = new DataColumn[] { m_characters.Columns["characterID"] };
+
             // make sure the data path exists
             try
             {
@@ -65,39 +75,19 @@ namespace HeavyDuck.Eve.AssetManager
                 // pass
             }
 
-            // load keys from disk
-            try
-            {
-                string path = Path.Combine(m_dataPath, "keys.xml");
-                if (File.Exists(path)) m_keys.ReadXml(path);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to load your saved API keys. You may need to enter them again.\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-            // prep the characters table
-            m_characters = new DataTable("Characters");
-            m_characters.Columns.Add("userID", typeof(int));
-            m_characters.Columns.Add("name", typeof(string));
-            m_characters.Columns.Add("characterID", typeof(int));
-            m_characters.Columns.Add("corporationName", typeof(string));
-            m_characters.Columns.Add("corporationID", typeof(int));
+            // load keys and characters from disk
+            LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
+            LoadDataTable(m_characters, "characters.xml", "Failed to load your character list. You may need to reset your corp asset preferences.");
 
             // start the UI
             Application.Run(new MainForm());
 
-            // save our API keys to disk
-            try
-            {
-                string path = Path.Combine(m_dataPath, "keys.xml");
-                m_keys.WriteXml(path);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to save your API keys. You may need to re-enter them next time.\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // save our API keys and characters to disk
+            SaveDataTable(m_keys, "keys.xml", "Failed to save your API keys. You may need to re-enter them next time.");
+            SaveDataTable(m_characters, "characters.xml", "Failed to save your character list. You may need to reset your corp asset preferences next time.");
         }
+
+        #region Public Properties
 
         public static DataTable ApiKeys
         {
@@ -128,6 +118,8 @@ namespace HeavyDuck.Eve.AssetManager
         {
             get { return m_connectionString; }
         }
+
+        #endregion
 
         public static void InitializeDB()
         {
@@ -177,7 +169,7 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable tempChars;
 
             // this is where we're gonna put the characters while we query and read XML and stuff
-            tempChars = Program.Characters.Clone();
+            tempChars = m_characters.Clone();
             
             foreach (DataRow row in Program.ApiKeys.Rows)
             {
@@ -190,15 +182,10 @@ namespace HeavyDuck.Eve.AssetManager
                 {
                     path = EveApiHelper.GetCharacters(userID, apiKey);
                 }
-                catch (EveApiException ex)
-                {
-                    MessageBox.Show(ex.ToString(), "EVE API Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    continue;
-                }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                    MessageBox.Show("Failed to fetch characters for UserID " + userID.ToString() + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    continue;
                 }
 
                 // parse the XML
@@ -207,28 +194,68 @@ namespace HeavyDuck.Eve.AssetManager
                     XPathDocument doc = new XPathDocument(fs);
                     XPathNavigator nav = doc.CreateNavigator();
                     XPathNodeIterator iter;
-                    DataRow charRow;
+                    DataRow charRow, existingRow;
 
                     iter = nav.Select("/eveapi/result/rowset/row");
 
                     while (iter.MoveNext())
                     {
+                        // create the new row
                         charRow = tempChars.NewRow();
                         charRow["userID"] = userID;
                         charRow["name"] = iter.Current.SelectSingleNode("@name").Value;
                         charRow["characterID"] = iter.Current.SelectSingleNode("@characterID").ValueAsInt;
                         charRow["corporationName"] = iter.Current.SelectSingleNode("@corporationName").Value;
                         charRow["corporationID"] = iter.Current.SelectSingleNode("@corporationID").ValueAsInt;
+                        charRow["queryCorp"] = true;
 
+                        // try to find a matching row from the current characters table and keep that queryCorp value if we do
+                        existingRow = m_characters.Rows.Find(charRow["characterID"]);
+                        if (existingRow != null)
+                            charRow["queryCorp"] = existingRow["queryCorp"];
+
+                        // add the row to the temp table
                         tempChars.Rows.Add(charRow);
                     }
                 }
             }
 
             // clear our character list and replace it
-            Program.Characters.Rows.Clear();
+            m_characters.Rows.Clear();
             foreach (DataRow row in tempChars.Rows)
-                Program.Characters.LoadDataRow(row.ItemArray, true);
+                m_characters.LoadDataRow(row.ItemArray, true);
         }
+
+        #region Private Methods
+
+        private static void LoadDataTable(DataTable table, string fileName, string errorText)
+        {
+            string path = Path.Combine(m_dataPath, fileName);
+
+            try
+            {
+                if (File.Exists(path)) table.ReadXml(path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(errorText + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static void SaveDataTable(DataTable table, string fileName, string errorText)
+        {
+            string path = Path.Combine(m_dataPath, fileName);
+
+            try
+            {
+                table.WriteXml(path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(errorText + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
     }
 }
