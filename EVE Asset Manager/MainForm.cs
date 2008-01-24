@@ -288,7 +288,7 @@ namespace HeavyDuck.Eve.AssetManager
             try
             {
                 dialog = new ProgressDialog();
-                dialog.AddTask(GetAssetTable);
+                dialog.AddTask(UpdateAssetTable);
                 dialog.Show();
 
                 grid.DataSource = m_assets.DefaultView;
@@ -392,13 +392,21 @@ namespace HeavyDuck.Eve.AssetManager
             dialog.Advance();
         }
 
-        private void GetAssetTable(IProgressDialog dialog)
+        private void UpdateAssetTable(IProgressDialog dialog)
+        {
+            // update dialog
+            dialog.Update("Querying asset database...", 0, 1);
+
+            // yay
+            m_assets = GetAssetTable(m_clauses);
+            m_assets.DefaultView.Sort = "typeName ASC";
+            dialog.Advance();
+        }
+
+        private DataTable GetAssetTable(IEnumerable<WhereClause> clauses)
         {
             StringBuilder sql;
             DataTable table = new DataTable("Assets");
-
-            // update dialog
-            dialog.Update("Querying asset database...", 0, 1);
 
             // connect to our lovely database
             using (SQLiteConnection conn = new SQLiteConnection(Program.ConnectionString))
@@ -429,15 +437,18 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.eveNames cl ON cl.itemID = c.locationID ");
 
                 // add where stuff
-                if (m_clauses != null && m_clauses.Count > 0)
+                if (clauses != null)
                 {
-                    List<string> clauses = new List<string>(m_clauses.Count);
+                    List<string> whereParts = new List<string>();
 
-                    foreach (WhereClause clause in m_clauses)
-                        clauses.Add(clause.Clause);
+                    foreach (WhereClause clause in clauses)
+                        whereParts.Add(clause.Clause);
 
-                    sql.Append("WHERE ");
-                    sql.Append(string.Join(" AND ", clauses.ToArray()));
+                    if (whereParts.Count > 0)
+                    {
+                        sql.Append("WHERE ");
+                        sql.Append(string.Join(" AND ", whereParts.ToArray()));
+                    }
                 }
 
                 // start the command we will use
@@ -447,10 +458,13 @@ namespace HeavyDuck.Eve.AssetManager
                     cmd.CommandText = sql.ToString();
 
                     // add parameters for the user-entered where clauses
-                    if (m_clauses != null)
+                    if (clauses != null)
                     {
-                        foreach (WhereClause clause in m_clauses)
-                            cmd.Parameters.AddWithValue(clause.ParameterName, clause.ParameterValue);
+                        foreach (WhereClause clause in clauses)
+                        {
+                            if (!string.IsNullOrEmpty(clause.ParameterName))
+                                cmd.Parameters.AddWithValue(clause.ParameterName, clause.ParameterValue);
+                        }
                     }
 
                     // create adapter and fill our table
@@ -459,10 +473,7 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
 
-            // yay
-            m_assets = table;
-            m_assets.DefaultView.Sort = "typeName ASC";
-            dialog.Advance();
+            return table;
         }
 
         private static void ParseAssets(string filePath, string characterName)
