@@ -34,6 +34,9 @@ namespace HeavyDuck.Eve.AssetManager
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // fix the fucking retarded default toolstrip look
+            ToolStripManager.VisualStylesEnabled = false;
+
             // look for the static data db
             if (File.Exists(CCP_DB_NAME))
             {
