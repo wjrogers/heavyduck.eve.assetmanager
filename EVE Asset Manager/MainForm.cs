@@ -34,7 +34,12 @@ namespace HeavyDuck.Eve.AssetManager
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
+            menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
+            menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
+            menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
         }
+
+        #region Event Handlers
 
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -61,14 +66,9 @@ namespace HeavyDuck.Eve.AssetManager
             toolbar.Items.Add(new ToolStripButton("Query", Properties.Resources.magnifier, ToolStripItem_Click, "query"));
             toolbar.Items.Add(new ToolStripButton("Add Field", Properties.Resources.add, ToolStripItem_Click, "add_field"));
             toolbar.Items.Add(new ToolStripButton("Reset Fields", Properties.Resources.page_white, ToolStripItem_Click, "reset_fields"));
-            toolbar.Items.Add(new ToolStripSeparator());
-            toolbar.Items.Add(new ToolStripButton("Refresh Assets", Properties.Resources.arrow_refresh, ToolStripItem_Click, "refresh"));
-            toolbar.Items.Add(new ToolStripButton("Manage API Keys", Properties.Resources.key, ToolStripItem_Click, "manage_keys"));
             toolbar.Items.Add(m_countLabel);
 
             // toolbar tooltips
-            toolbar.Items["refresh"].ToolTipText = "Update your asset data from the EVE API";
-            toolbar.Items["manage_keys"].ToolTipText = "Add or remove API keys";
             toolbar.Items["query"].ToolTipText = "Search your assets using the criteria in the fields below";
             toolbar.Items["add_field"].ToolTipText = "Add another search field";
             toolbar.Items["reset_fields"].ToolTipText = "Reset all the search fields";
@@ -91,33 +91,11 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void ToolStripItem_Click(object sender, EventArgs e)
         {
-            ProgressDialog dialog;
             ToolStripItem item = sender as ToolStripItem;
             if (item == null) return;
 
             switch (item.Name)
             {
-                case "refresh":
-                    // refresh our asset data from EVE
-                    try
-                    {
-                        dialog = new ProgressDialog();
-                        dialog.AddTask(RefreshAssets);
-                        dialog.Show();
-                    }
-                    catch (ProgressException ex)
-                    {
-                        MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    // re-run the query
-                    RunQuery();
-
-                    break;
-                case "manage_keys":
-                    KeyManager.Show(this);
-                    break;
                 case "query":
                     RunQuery();
                     break;
@@ -139,6 +117,43 @@ namespace HeavyDuck.Eve.AssetManager
             m_searchControls.Remove(control);
             UpdateSearchPanel();
         }
+
+        #endregion
+
+        #region Event Handlers - Menus
+
+        private void menu_file_exit_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void menu_options_refresh_Click(object sender, EventArgs e)
+        {
+            ProgressDialog dialog;
+
+            // refresh our asset data from EVE
+            try
+            {
+                dialog = new ProgressDialog();
+                dialog.AddTask(RefreshAssets);
+                dialog.Show();
+            }
+            catch (ProgressException ex)
+            {
+                MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // re-run the query
+            RunQuery();
+        }
+
+        private void menu_options_keys_Click(object sender, EventArgs e)
+        {
+            KeyManager.Show(this);
+        }
+
+        #endregion
 
         private void BuildWhereClause()
         {
