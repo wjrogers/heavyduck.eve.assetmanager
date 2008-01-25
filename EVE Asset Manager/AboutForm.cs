@@ -10,6 +10,8 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public partial class AboutForm : Form
     {
+        public const string HOMEPAGE = @"http://wiki.heavyduck.com/EveAssetManager";
+
         public AboutForm()
         {
             InitializeComponent();
@@ -22,11 +24,12 @@ namespace HeavyDuck.Eve.AssetManager
         {
             version_label.Text = "Version " + GetVersionString(true);
             copyright_label.Text = "Copyright © William J Rogers 2008";
+            link_label.Text = HOMEPAGE;
         }
 
         private void link_label_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            System.Diagnostics.Process.Start(link_label.Text);
+            System.Diagnostics.Process.Start(HOMEPAGE);
         }
 
         public static string GetVersionString(bool includeBuild)

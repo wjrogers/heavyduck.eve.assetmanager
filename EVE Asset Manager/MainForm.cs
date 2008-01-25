@@ -34,6 +34,7 @@ namespace HeavyDuck.Eve.AssetManager
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
+            menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
             menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
@@ -124,6 +125,35 @@ namespace HeavyDuck.Eve.AssetManager
 
         #region Event Handlers - Menus
 
+        private void menu_file_import_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dialog;
+
+            try
+            {
+                dialog = new OpenFileDialog();
+                dialog.CheckFileExists = true;
+                dialog.Filter = "XML Files (*.xml)|*.xml";
+                dialog.Multiselect = false;
+
+                if (dialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    // create the database only if it does not already exist!
+                    if (!File.Exists(Program.LocalDatabasePath)) Program.InitializeDB();
+
+                    // process the file
+                    ParseAssets(dialog.FileName, "Unknown");
+
+                    // update the count
+                    UpdateAssetCount();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowException(ex);
+            }
+        }
+
         private void menu_file_exit_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -168,7 +198,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to generate report:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowException("Failed to generate report:", ex);
             }
         }
 
@@ -185,7 +215,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (ProgressException ex)
             {
-                MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowException(ex);
                 return;
             }
 
@@ -364,7 +394,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (ProgressException ex)
             {
-                MessageBox.Show(ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowException(ex);
             }
         }
 
@@ -403,7 +433,7 @@ namespace HeavyDuck.Eve.AssetManager
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error retrieving assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ShowException("Error retrieving assets:", ex);
                 }
 
                 // fetch corporation assets?
@@ -422,7 +452,7 @@ namespace HeavyDuck.Eve.AssetManager
                     }
                     else
                     {
-                        MessageBox.Show("Error retrieving corp assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        ShowException("Error retrieving corp assets:", ex);
                     }
                 }
             }
@@ -436,7 +466,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to initialize the asset database:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowException("Failed to initialize the asset database:", ex);
                 return;
             }
             dialog.Advance();
@@ -453,7 +483,7 @@ namespace HeavyDuck.Eve.AssetManager
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error parsing assets:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ShowException("Error parsing assets:", ex);
                 }
             }
             dialog.Advance();
@@ -590,6 +620,7 @@ namespace HeavyDuck.Eve.AssetManager
             catch
             {
                 trans.Rollback();
+                throw;
             }
             finally
             {
@@ -617,7 +648,17 @@ namespace HeavyDuck.Eve.AssetManager
             insertCmd.Parameters["@containerID"].Value = containerID.HasValue ? containerID.Value : (object)DBNull.Value;
 
             // insert the row
-            insertCmd.ExecuteNonQuery();
+            try
+            {
+                insertCmd.ExecuteNonQuery();
+            }
+            catch (SQLiteException ex)
+            {
+                if (ex.Message.Contains("constraint violation"))
+                    System.Diagnostics.Debug.WriteLine("skipping row, duplicate itemID " + itemID.ToString());
+                else
+                    throw;
+            }
 
             // process child nodes
             contentIter = node.Select("rowset/row");
@@ -625,6 +666,18 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 ProcessNode(contentIter.Current, insertCmd, itemID);
             }
+        }
+
+        private void ShowException(Exception ex)
+        {
+            ShowException(null, ex);
+        }
+
+        private void ShowException(string intro, Exception ex)
+        {
+            if (ex == null) throw new ArgumentNullException("ex");
+            string message = string.IsNullOrEmpty(intro) ? ex.ToString() : intro + "\n\n" + ex.ToString();
+            MessageBox.Show(this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private class WhereClause
