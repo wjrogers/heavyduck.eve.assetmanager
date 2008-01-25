@@ -38,6 +38,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.menu_file_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_reports_material = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports_loadouts = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options_refresh = new System.Windows.Forms.ToolStripMenuItem();
@@ -116,10 +117,17 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_reports
             // 
             this.menu_reports.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menu_reports_material,
             this.menu_reports_loadouts});
             this.menu_reports.Name = "menu_reports";
             this.menu_reports.Size = new System.Drawing.Size(57, 20);
             this.menu_reports.Text = "&Reports";
+            // 
+            // menu_reports_material
+            // 
+            this.menu_reports_material.Name = "menu_reports_material";
+            this.menu_reports_material.Size = new System.Drawing.Size(152, 22);
+            this.menu_reports_material.Text = "Material";
             // 
             // menu_reports_loadouts
             // 
@@ -193,6 +201,7 @@ namespace HeavyDuck.Eve.AssetManager
         private System.Windows.Forms.ToolStripMenuItem menu_file;
         private System.Windows.Forms.ToolStripMenuItem menu_file_exit;
         private System.Windows.Forms.ToolStripMenuItem menu_reports;
+        private System.Windows.Forms.ToolStripMenuItem menu_reports_material;
         private System.Windows.Forms.ToolStripMenuItem menu_reports_loadouts;
         private System.Windows.Forms.ToolStripMenuItem menu_options;
         private System.Windows.Forms.ToolStripMenuItem menu_options_refresh;

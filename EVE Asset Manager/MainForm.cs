@@ -163,7 +163,7 @@ namespace HeavyDuck.Eve.AssetManager
         {
             List<WhereClause> clauses;
             DataTable assets;
-            DataColumn flagNameColumn, slotOrderColumn;
+            DataColumn flagNameColumn, slotOrderColumn, classColumn;
             ProgressDialog dialog;
 
             try
@@ -184,25 +184,46 @@ namespace HeavyDuck.Eve.AssetManager
                     p.Update("Preparing data...");
                     flagNameColumn = assets.Columns["flagName"];
                     slotOrderColumn = assets.Columns.Add("slotOrder", typeof(string));
+                    classColumn = assets.Columns.Add("rowClass", typeof(string));
                     foreach (DataRow row in assets.Rows)
                     {
                         string flag = row[flagNameColumn].ToString().ToLower();
                         if (flag.StartsWith("hislot"))
+                        {
                             row[slotOrderColumn] = "1" + flag;
+                            row[classColumn] = "hislot";
+                        }
                         else if (flag.StartsWith("medslot"))
+                        {
                             row[slotOrderColumn] = "2" + flag;
+                            row[classColumn] = "medslot";
+                        }
                         else if (flag.StartsWith("loslot"))
+                        {
                             row[slotOrderColumn] = "3" + flag;
-                        else if (flag == "dronebay")
+                            row[classColumn] = "loslot";
+                        }
+                        else if (flag.StartsWith("rigslot"))
+                        {
                             row[slotOrderColumn] = "4" + flag;
+                            row[classColumn] = "rigslot";
+                        }
+                        else if (flag == "dronebay")
+                        {
+                            row[slotOrderColumn] = "5" + flag;
+                            row[classColumn] = flag;
+                        }
                         else
+                        {
                             row[slotOrderColumn] = flag;
+                            row[classColumn] = flag;
+                        }
                     }
                     p.Advance();
 
                     // generate the report through this ridiculously long function call
                     p.Update("Generating report...");
-                    Reporter.GenerateHtmlReport(assets, @"C:\Temp\loadouts.html", "Ship Loadouts", "containerName", "characterName, locationName, containerName, slotOrder, typeName", delegate(object value, DataRowView row)
+                    Reporter.GenerateHtmlReport(assets, @"C:\Temp\loadouts.html", "Ship Loadouts", "containerName", "characterName, locationName, containerName, slotOrder, typeName", "rowClass", delegate(object value, DataRowView row)
                     {
                         return string.Format("{0}'s {1} in {2}", row["characterName"], value, row["locationName"]);
                     }, "flagName", "quantity", "typeName", "groupName");
