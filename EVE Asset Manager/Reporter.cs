@@ -9,10 +9,11 @@ namespace HeavyDuck.Eve.AssetManager
 {
     internal static class Reporter
     {
-        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; border: 1px solid gray; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid gray; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; background-color: #FFE; }";
+        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.hislot td { background-color: #FEC; } tr.medslot td { background-color: #FFC; } tr.loslot td { background-color: #EFE; } tr.rigslot { background-color: #FEE; } tr.Cargo { background-color: #EEE; }";
+
         public delegate string GroupHeaderFormatCallback(object groupValue, DataRowView row);
 
-        public static void GenerateHtmlReport(DataTable data, string outputPath, string title, string groupBy, string orderBy, GroupHeaderFormatCallback formatCallback, params string[] outputColumns)
+        public static void GenerateHtmlReport(DataTable data, string outputPath, string title, string groupBy, string orderBy, string rowClassColumn, GroupHeaderFormatCallback formatCallback, params string[] outputColumns)
         {
             DataView view;
             XmlWriter writer;
@@ -92,6 +93,8 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // item row
                     writer.WriteStartElement("tr");
+                    if (!string.IsNullOrEmpty(rowClassColumn))
+                        writer.WriteAttributeString("class", view[i][rowClassColumn].ToString());
                     foreach (DataColumn col in columns)
                         writer.WriteElementString("td", view[i][col.Ordinal].ToString());
                     writer.WriteEndElement(); // tr
