@@ -43,6 +43,8 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_options_keys = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help_about = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_file_import = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             ((System.ComponentModel.ISupportInitialize)(this.grid)).BeginInit();
             this.menu.SuspendLayout();
             this.SuspendLayout();
@@ -88,6 +90,8 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_file
             // 
             this.menu_file.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.menu_file_import,
+            this.toolStripSeparator1,
             this.menu_file_exit});
             this.menu_file.Name = "menu_file";
             this.menu_file.Size = new System.Drawing.Size(35, 20);
@@ -152,8 +156,19 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_help_about
             // 
             this.menu_help_about.Name = "menu_help_about";
-            this.menu_help_about.Size = new System.Drawing.Size(152, 22);
+            this.menu_help_about.Size = new System.Drawing.Size(114, 22);
             this.menu_help_about.Text = "&About";
+            // 
+            // menu_file_import
+            // 
+            this.menu_file_import.Name = "menu_file_import";
+            this.menu_file_import.Size = new System.Drawing.Size(152, 22);
+            this.menu_file_import.Text = "Import XML...";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
             // 
             // MainForm
             // 
@@ -193,5 +208,7 @@ namespace HeavyDuck.Eve.AssetManager
         private System.Windows.Forms.ToolStripMenuItem menu_options_keys;
         private System.Windows.Forms.ToolStripMenuItem menu_help;
         private System.Windows.Forms.ToolStripMenuItem menu_help_about;
+        private System.Windows.Forms.ToolStripMenuItem menu_file_import;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     }
 }
