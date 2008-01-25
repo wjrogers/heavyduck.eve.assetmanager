@@ -29,7 +29,7 @@ namespace HeavyDuck.Eve.AssetManager
             m_searchControls = new List<SearchClauseControl>();
 
             // update the title with the version
-            this.Text += " " + Application.ProductVersion;
+            this.Text += " " + AboutForm.GetVersionString(false);
 
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
@@ -37,6 +37,7 @@ namespace HeavyDuck.Eve.AssetManager
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
             menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
+            menu_help_about.Click += new EventHandler(menu_help_about_Click);
         }
 
         #region Event Handlers
@@ -151,6 +152,13 @@ namespace HeavyDuck.Eve.AssetManager
         private void menu_options_keys_Click(object sender, EventArgs e)
         {
             KeyManager.Show(this);
+        }
+
+        private void menu_help_about_Click(object sender, EventArgs e)
+        {
+            AboutForm form = new AboutForm();
+
+            form.ShowDialog(this);
         }
 
         #endregion
