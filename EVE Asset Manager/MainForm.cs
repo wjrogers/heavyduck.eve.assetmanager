@@ -35,6 +35,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.Load += new EventHandler(MainForm_Load);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
+            menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
             menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
             menu_help_about.Click += new EventHandler(menu_help_about_Click);
@@ -126,6 +127,49 @@ namespace HeavyDuck.Eve.AssetManager
         private void menu_file_exit_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void menu_reports_loadouts_Click(object sender, EventArgs e)
+        {
+            List<WhereClause> clauses;
+            DataTable assets;
+            DataColumn flagNameColumn, slotOrderColumn;
+
+            try
+            {
+                // create our clauses and get assets
+                clauses = new List<WhereClause>();
+                clauses.Add(new WhereClause("containerCategory = 'Ship'", null, null));
+                assets = GetAssetTable(clauses);
+
+                // stealthily modify the assets table so we can sort the slots in the order we want
+                flagNameColumn = assets.Columns["flagName"];
+                slotOrderColumn = assets.Columns.Add("slotOrder", typeof(string));
+                foreach (DataRow row in assets.Rows)
+                {
+                    string flag = row[flagNameColumn].ToString().ToLower();
+                    if (flag.StartsWith("hislot"))
+                        row[slotOrderColumn] = "1" + flag;
+                    else if (flag.StartsWith("medslot"))
+                        row[slotOrderColumn] = "2" + flag;
+                    else if (flag.StartsWith("loslot"))
+                        row[slotOrderColumn] = "3" + flag;
+                    else if (flag == "dronebay")
+                        row[slotOrderColumn] = "4" + flag;
+                    else
+                        row[slotOrderColumn] = flag;
+                }
+
+                // generate the report through this ridiculously long function call
+                Reporter.GenerateHtmlReport(assets, @"C:\Temp\loadouts.html", "Ship Loadouts", "containerName", "characterName, locationName, containerName, slotOrder, typeName", delegate(object value, DataRowView row)
+                {
+                    return string.Format("{0}'s {1} in {2}", row["characterName"], value, row["locationName"]);
+                }, "flagName", "quantity", "typeName", "groupName");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to generate report:\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void menu_options_refresh_Click(object sender, EventArgs e)
@@ -447,7 +491,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, COALESCE(l.itemName, cl.itemName) AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, COALESCE(l.itemName, cl.itemName) AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
@@ -457,6 +501,8 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.eveNames l ON l.itemID = a.locationID ");
                 sql.Append("LEFT JOIN assets c ON c.itemID = a.containerID ");
                 sql.Append("LEFT JOIN eve.invTypes ct ON ct.typeID = c.typeID ");
+                sql.Append("LEFT JOIN eve.invGroups cg ON cg.groupID = ct.groupID ");
+                sql.Append("LEFT JOIN eve.invCategories ccat ON ccat.categoryID = cg.categoryID ");
                 sql.Append("LEFT JOIN eve.eveNames cl ON cl.itemID = c.locationID ");
 
                 // add where stuff
