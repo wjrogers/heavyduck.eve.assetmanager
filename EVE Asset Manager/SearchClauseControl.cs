@@ -43,6 +43,9 @@ namespace HeavyDuck.Eve.AssetManager
 
             // owner
             m_fields.Add(new SearchField("Owner", "a.characterName", SearchField.SearchFieldType.String));
+
+            // id
+            m_fields.Add(new SearchField("ID", "a.itemID", SearchField.SearchFieldType.Number));
         }
 
         private static DataTable GetFieldOptions(string sql)
