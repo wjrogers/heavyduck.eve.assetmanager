@@ -34,17 +34,16 @@ namespace HeavyDuck.Eve.AssetManager
             this.search_panel = new System.Windows.Forms.Panel();
             this.menu = new System.Windows.Forms.MenuStrip();
             this.menu_file = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_file_import = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.menu_file_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports = new System.Windows.Forms.ToolStripMenuItem();
-            this.menu_reports_minerals = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports_loadouts = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options_refresh = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options_keys = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help_about = new System.Windows.Forms.ToolStripMenuItem();
-            this.menu_file_import = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             ((System.ComponentModel.ISupportInitialize)(this.grid)).BeginInit();
             this.menu.SuspendLayout();
             this.SuspendLayout();
@@ -97,26 +96,30 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_file.Size = new System.Drawing.Size(35, 20);
             this.menu_file.Text = "&File";
             // 
+            // menu_file_import
+            // 
+            this.menu_file_import.Name = "menu_file_import";
+            this.menu_file_import.Size = new System.Drawing.Size(151, 22);
+            this.menu_file_import.Text = "Import XML...";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(148, 6);
+            // 
             // menu_file_exit
             // 
             this.menu_file_exit.Name = "menu_file_exit";
-            this.menu_file_exit.Size = new System.Drawing.Size(152, 22);
+            this.menu_file_exit.Size = new System.Drawing.Size(151, 22);
             this.menu_file_exit.Text = "E&xit";
             // 
             // menu_reports
             // 
             this.menu_reports.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.menu_reports_minerals,
             this.menu_reports_loadouts});
             this.menu_reports.Name = "menu_reports";
             this.menu_reports.Size = new System.Drawing.Size(57, 20);
             this.menu_reports.Text = "&Reports";
-            // 
-            // menu_reports_minerals
-            // 
-            this.menu_reports_minerals.Name = "menu_reports_minerals";
-            this.menu_reports_minerals.Size = new System.Drawing.Size(152, 22);
-            this.menu_reports_minerals.Text = "Minerals";
             // 
             // menu_reports_loadouts
             // 
@@ -159,17 +162,6 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_help_about.Size = new System.Drawing.Size(114, 22);
             this.menu_help_about.Text = "&About";
             // 
-            // menu_file_import
-            // 
-            this.menu_file_import.Name = "menu_file_import";
-            this.menu_file_import.Size = new System.Drawing.Size(152, 22);
-            this.menu_file_import.Text = "Import XML...";
-            // 
-            // toolStripSeparator1
-            // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -201,7 +193,6 @@ namespace HeavyDuck.Eve.AssetManager
         private System.Windows.Forms.ToolStripMenuItem menu_file;
         private System.Windows.Forms.ToolStripMenuItem menu_file_exit;
         private System.Windows.Forms.ToolStripMenuItem menu_reports;
-        private System.Windows.Forms.ToolStripMenuItem menu_reports_minerals;
         private System.Windows.Forms.ToolStripMenuItem menu_reports_loadouts;
         private System.Windows.Forms.ToolStripMenuItem menu_options;
         private System.Windows.Forms.ToolStripMenuItem menu_options_refresh;

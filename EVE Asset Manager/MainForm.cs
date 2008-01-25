@@ -164,37 +164,52 @@ namespace HeavyDuck.Eve.AssetManager
             List<WhereClause> clauses;
             DataTable assets;
             DataColumn flagNameColumn, slotOrderColumn;
+            ProgressDialog dialog;
 
             try
             {
-                // create our clauses and get assets
-                clauses = new List<WhereClause>();
-                clauses.Add(new WhereClause("containerCategory = 'Ship'", null, null));
-                assets = GetAssetTable(clauses);
-
-                // stealthily modify the assets table so we can sort the slots in the order we want
-                flagNameColumn = assets.Columns["flagName"];
-                slotOrderColumn = assets.Columns.Add("slotOrder", typeof(string));
-                foreach (DataRow row in assets.Rows)
+                dialog = new ProgressDialog();
+                dialog.AddTask(delegate(IProgressDialog p)
                 {
-                    string flag = row[flagNameColumn].ToString().ToLower();
-                    if (flag.StartsWith("hislot"))
-                        row[slotOrderColumn] = "1" + flag;
-                    else if (flag.StartsWith("medslot"))
-                        row[slotOrderColumn] = "2" + flag;
-                    else if (flag.StartsWith("loslot"))
-                        row[slotOrderColumn] = "3" + flag;
-                    else if (flag == "dronebay")
-                        row[slotOrderColumn] = "4" + flag;
-                    else
-                        row[slotOrderColumn] = flag;
-                }
+                    p.Update(0, 3);
 
-                // generate the report through this ridiculously long function call
-                Reporter.GenerateHtmlReport(assets, @"C:\Temp\loadouts.html", "Ship Loadouts", "containerName", "characterName, locationName, containerName, slotOrder, typeName", delegate(object value, DataRowView row)
-                {
-                    return string.Format("{0}'s {1} in {2}", row["characterName"], value, row["locationName"]);
-                }, "flagName", "quantity", "typeName", "groupName");
+                    // create our clauses and get assets
+                    p.Update("Querying assets...");
+                    clauses = new List<WhereClause>();
+                    clauses.Add(new WhereClause("containerCategory = 'Ship'", null, null));
+                    assets = GetAssetTable(clauses);
+                    p.Advance();
+
+                    // stealthily modify the assets table so we can sort the slots in the order we want
+                    p.Update("Preparing data...");
+                    flagNameColumn = assets.Columns["flagName"];
+                    slotOrderColumn = assets.Columns.Add("slotOrder", typeof(string));
+                    foreach (DataRow row in assets.Rows)
+                    {
+                        string flag = row[flagNameColumn].ToString().ToLower();
+                        if (flag.StartsWith("hislot"))
+                            row[slotOrderColumn] = "1" + flag;
+                        else if (flag.StartsWith("medslot"))
+                            row[slotOrderColumn] = "2" + flag;
+                        else if (flag.StartsWith("loslot"))
+                            row[slotOrderColumn] = "3" + flag;
+                        else if (flag == "dronebay")
+                            row[slotOrderColumn] = "4" + flag;
+                        else
+                            row[slotOrderColumn] = flag;
+                    }
+                    p.Advance();
+
+                    // generate the report through this ridiculously long function call
+                    p.Update("Generating report...");
+                    Reporter.GenerateHtmlReport(assets, @"C:\Temp\loadouts.html", "Ship Loadouts", "containerName", "characterName, locationName, containerName, slotOrder, typeName", delegate(object value, DataRowView row)
+                    {
+                        return string.Format("{0}'s {1} in {2}", row["characterName"], value, row["locationName"]);
+                    }, "flagName", "quantity", "typeName", "groupName");
+                    p.Advance();
+                });
+                dialog.Show();
+
             }
             catch (Exception ex)
             {
