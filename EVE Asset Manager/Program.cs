@@ -16,8 +16,8 @@ namespace HeavyDuck.Eve.AssetManager
         private const string CCP_DB_NAME = @"trinity_1.0_sqlite3.db";
 
         private static readonly string m_dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve");
-        private static readonly string m_dbPath = Path.Combine(Program.DataPath, "assets.db");
-        private static readonly string m_connectionString = "Data Source=" + m_dbPath;
+        private static readonly string m_localCachePath = Path.Combine(m_dataPath, "assets.db");
+        private static readonly string m_connectionString = "Data Source=" + m_localCachePath;
 
         private static string m_ccpDbPath;
 
@@ -107,9 +107,9 @@ namespace HeavyDuck.Eve.AssetManager
             get { return m_dataPath; }
         }
 
-        public static string LocalDatabasePath
+        public static string LocalCachePath
         {
-            get { return m_dbPath; }
+            get { return m_localCachePath; }
         }
 
         public static string CcpDatabasePath
@@ -124,45 +124,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         #endregion
 
-        public static void InitializeDB()
-        {
-            SQLiteConnection conn = null;
-            SQLiteCommand cmd = null;
-            StringBuilder sql;
-
-            // delete any existing file
-            if (File.Exists(LocalDatabasePath)) File.Delete(LocalDatabasePath);
-           
-            // let's connect
-            try
-            {
-                // connect to our brand new database
-                conn = new SQLiteConnection(ConnectionString);
-                conn.Open();
-
-                // let's build up a create table statement
-                sql = new StringBuilder();
-                sql.Append("CREATE TABLE assets (");
-                sql.Append("itemID INT PRIMARY KEY,");
-                sql.Append("characterName STRING,");
-                sql.Append("locationID INT,");
-                sql.Append("typeID INT,");
-                sql.Append("quantity INT,");
-                sql.Append("flag INT,");
-                sql.Append("singleton BOOL,");
-                sql.Append("containerID INT");
-                sql.Append(")");
-
-                // create our command and create the table
-                cmd = new SQLiteCommand(sql.ToString(), conn);
-                cmd.ExecuteNonQuery();
-            }
-            finally
-            {
-                if (cmd != null) cmd.Dispose();
-                if (conn != null) conn.Dispose();
-            }
-        }
+        #region Public Methods
 
         public static void RefreshCharacters()
         {
@@ -228,6 +190,8 @@ namespace HeavyDuck.Eve.AssetManager
             foreach (DataRow row in tempChars.Rows)
                 m_characters.LoadDataRow(row.ItemArray, true);
         }
+
+        #endregion
 
         #region Private Methods
 
