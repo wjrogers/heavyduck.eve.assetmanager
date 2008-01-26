@@ -37,6 +37,7 @@ namespace HeavyDuck.Eve.AssetManager
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
             menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
+            menu_reports_material.Click += new EventHandler(menu_reports_material_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
             menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
             menu_help_about.Click += new EventHandler(menu_help_about_Click);
@@ -163,7 +164,6 @@ namespace HeavyDuck.Eve.AssetManager
         {
             List<WhereClause> clauses;
             DataTable assets;
-            DataColumn flagNameColumn, slotOrderColumn, classColumn;
             ProgressDialog dialog;
 
             try
@@ -188,6 +188,39 @@ namespace HeavyDuck.Eve.AssetManager
                 });
                 dialog.Show();
 
+            }
+            catch (Exception ex)
+            {
+                ShowException("Failed to generate report:", ex);
+            }
+        }
+
+        private void menu_reports_material_Click(object sender, EventArgs e)
+        {
+            List<WhereClause> clauses;
+            DataTable assets;
+            ProgressDialog dialog;
+
+            try
+            {
+                dialog = new ProgressDialog();
+                dialog.AddTask(delegate(IProgressDialog p)
+                {
+                    p.Update(0, 2);
+
+                    // create classes, get assets
+                    p.Update("Querying assets...");
+                    clauses = new List<WhereClause>();
+                    clauses.Add(new WhereClause("cat.categoryName = 'Material'", null, null));
+                    assets = AssetCache.GetAssetTable(clauses);
+                    p.Advance();
+
+                    // generate report
+                    p.Update("Generating report...");
+                    Reporter.GenerateMaterialReport(assets, @"D:\Temp\material.html");
+                    p.Advance();
+                });
+                dialog.Show();
             }
             catch (Exception ex)
             {
