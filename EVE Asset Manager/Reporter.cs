@@ -10,7 +10,7 @@ namespace HeavyDuck.Eve.AssetManager
 {
     internal static class Reporter
     {
-        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; }";
+        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .bold td { font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
 
         public static void GenerateLoadoutReport(DataTable data, string outputPath)
         {
@@ -153,17 +153,23 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable summary;
             DataRow summaryRow;
             DataView view, summaryView;
+            Dictionary<int, double> materialPrices;
+
+            // initialize the material price dict
+            materialPrices = new Dictionary<int, double>();
 
             // set up the summary data table
             summary = new DataTable("Material Summary");
             summary.Columns.Add("typeName", typeof(string));
             summary.Columns.Add("groupName", typeof(string));
             summary.Columns.Add("quantity", typeof(long));
+            summary.Columns.Add("value", typeof(double));
             summary.Columns["quantity"].DefaultValue = 0;
+            summary.Columns["value"].DefaultValue = 0;
             summary.PrimaryKey = new DataColumn[] { summary.Columns["typeName"] };
             
             // group calculate the source data
-            data = TableHelper.GroupBy(data, "groupName, typeName, locationName", "quantity");
+            data = TableHelper.GroupBy(data, "groupName, typeID, typeName, locationName", "quantity");
 
             // create the view
             view = new DataView(data, null, "locationName, groupName, typeName", DataViewRowState.CurrentRows);
@@ -198,10 +204,38 @@ namespace HeavyDuck.Eve.AssetManager
                 // loop
                 foreach (DataRowView row in view)
                 {
-                    // read the grouping infos
+                    // read the infos
                     string location = row["locationName"].ToString();
                     string group = row["groupName"].ToString();
                     string type = row["typeName"].ToString();
+                    int typeID = Convert.ToInt32(row["typeID"]);
+                    double value;
+                    
+                    // do value-calculation stuffs
+                    try
+                    {
+                        double tempValue;
+
+                        if (!materialPrices.ContainsKey(typeID))
+                        {
+                            // we don't have a price for this type yet, try to fetch it
+                            tempValue = EveCentralHelper.GetItemAveragePrice(typeID);
+
+                            // the helper will return -1 if the price is not in the file
+                            if (tempValue < 0) tempValue = 0;
+
+                            // store this value, even if it's 0, in the thingy
+                            materialPrices[typeID] = tempValue;
+                        }
+                    }
+                    catch
+                    {
+                        // if any error occurs, make sure we don't repeatedly query this type by setting the cached value to 0
+                        materialPrices[typeID] = 0;
+                    }
+
+                    // set the value from the cache
+                    value = Convert.ToInt64(row["quantity"]) * materialPrices[typeID];
 
                     // check the big group
                     if (location != currentLocation)
@@ -231,9 +265,9 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // write the row
                     writer.WriteStartElement("tr");
-                    writer.WriteElementString("td", type);
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(row["quantity"]));
-                    WriteElementStringWithClass(writer, "td", "r", "$");
+                    writer.WriteElementString("td", type);
+                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
                     writer.WriteEndElement(); // tr
 
                     // sum
@@ -244,12 +278,14 @@ namespace HeavyDuck.Eve.AssetManager
                         summaryRow["groupName"] = group;
                         summaryRow["typeName"] = type;
                         summaryRow["quantity"] = row["quantity"];
+                        summaryRow["value"] = value;
 
                         summary.Rows.Add(summaryRow);
                     }
                     else
                     {
                         summaryRow["quantity"] = Convert.ToInt64(summaryRow["quantity"]) + Convert.ToInt64(row["quantity"]);
+                        summaryRow["value"] = Convert.ToDouble(summaryRow["value"]) + value;
                     }
                 }
 
@@ -275,6 +311,8 @@ namespace HeavyDuck.Eve.AssetManager
                     // read the strings
                     string group = row["groupName"].ToString();
                     string type = row["typeName"].ToString();
+                    long quantity = Convert.ToInt64(row["quantity"]);
+                    double value = Convert.ToDouble(row["value"]);
 
                     // group
                     if (group != currentGroup)
@@ -287,11 +325,42 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // write the row
                     writer.WriteStartElement("tr");
+                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", type);
-                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(row["quantity"]));
-                    WriteElementStringWithClass(writer, "td", "r", "$");
+                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
                     writer.WriteEndElement(); // tr
                 }
+
+                // do yet another groupby down to each, err, group
+                double totalItems = 0, totalValue = 0;
+                DataTable groupTotals = TableHelper.GroupBy(summary, "groupName", "quantity", "value");
+                DataView groupTotalsView = new DataView(groupTotals, null, "groupName", DataViewRowState.CurrentRows);
+
+                // summary total
+                WriteSubGroupRow(writer, "Grand Total", 3);
+                foreach (DataRowView row in groupTotalsView)
+                {
+                    string group = row["groupName"].ToString();
+                    long quantity = Convert.ToInt64(row["quantity"]);
+                    double value = Convert.ToDouble(row["value"]);
+
+                    // totals
+                    totalItems += quantity;
+                    totalValue += value;
+
+                    // row
+                    writer.WriteStartElement("tr");
+                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
+                    writer.WriteElementString("td", group);
+                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
+                    writer.WriteEndElement(); // tr
+                }
+                writer.WriteStartElement("tr");
+                writer.WriteAttributeString("class", "bold");
+                WriteElementStringWithClass(writer, "td", "r", FormatInt64(totalItems));
+                writer.WriteElementString("td", "All Materials");
+                WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(totalValue));
+                writer.WriteEndElement(); // tr
 
                 // finish
                 writer.WriteEndDocument();
@@ -350,6 +419,19 @@ namespace HeavyDuck.Eve.AssetManager
             writer.WriteEndElement(); // localName
         }
 
+        private static void WriteElementRawWithClass(XmlWriter writer, string localName, string classAttribute, string value)
+        {
+            writer.WriteStartElement(localName);
+            writer.WriteAttributeString("class", classAttribute);
+            writer.WriteRaw(value);
+            writer.WriteEndElement(); // localName
+        }
+
+        private static void WriteSpacerCell(XmlWriter writer)
+        {
+            WriteElementStringWithClass(writer, "td", "s", " ");
+        }
+
         private static string FormatInt32(object value)
         {
             return Convert.ToInt32(value).ToString("#,##0");
@@ -358,6 +440,29 @@ namespace HeavyDuck.Eve.AssetManager
         private static string FormatInt64(object value)
         {
             return Convert.ToInt64(value).ToString("#,##0");
+        }
+
+        private static string FormatDouble1(object value)
+        {
+            return Convert.ToDouble(value).ToString("#,##0.0");
+        }
+
+        private static string FormatDouble2(object value)
+        {
+            return Convert.ToDouble(value).ToString("#,##0.00");
+        }
+
+        private static string FormatDouble3(object value)
+        {
+            return Convert.ToDouble(value).ToString("#,##0.000");
+        }
+
+        private static string FormatMaterialValue(double value)
+        {
+            if (value == 0)
+                return "?";
+            else
+                return "<small class=\"g\">ISK</small> " + FormatDouble1(value);
         }
     }
 }
