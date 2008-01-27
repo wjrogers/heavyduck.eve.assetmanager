@@ -8,11 +8,13 @@ using HeavyDuck.Utilities.Data;
 
 namespace HeavyDuck.Eve.AssetManager
 {
+    public delegate void GenerateReportDelegate(DataTable data, string title, string outputPath);
+
     internal static class Reporter
     {
         private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .bold td { font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
 
-        public static void GenerateLoadoutReport(DataTable data, string outputPath)
+        public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
         {
             DataView view;
             XmlWriter writer;
@@ -67,21 +69,7 @@ namespace HeavyDuck.Eve.AssetManager
                 writer = CreateWriter(output);
 
                 // start the document
-                writer.WriteStartElement("html");
-                writer.WriteStartElement("head");
-                writer.WriteElementString("title", "Ship Loadouts");
-
-                // CSS
-                WriteCss(writer, REPORT_CSS);
-                WriteCss(writer, "tr.hislot th { background-color: #FDD; } tr.medslot th { background-color: #CDF; } tr.loslot th { background-color: #FFC; } tr.dronebay th { background-color: #EFE; } tr.rigslot th { background-color: #FCF; } tr.cargo th,tr.cargo td { background-color: #EEE; }");
-
-                // finish ye olde head
-                writer.WriteEndElement(); // head
-
-                // start body and write standard stuff
-                writer.WriteStartElement("body");
-                writer.WriteElementString("h1", "Ship Loadouts");
-                WriteVersionP(writer);
+                WriteToBody(writer, title, "tr.hislot th { background-color: #FDD; } tr.medslot th { background-color: #CDF; } tr.loslot th { background-color: #FFC; } tr.dronebay th { background-color: #EFE; } tr.rigslot th { background-color: #FCF; } tr.cargo th,tr.cargo td { background-color: #EEE; }");
                 writer.WriteStartElement("table");
 
                 // the group variables
@@ -147,7 +135,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        public static void GenerateMaterialReport(DataTable data, string outputPath)
+        public static void GenerateMaterialReport(DataTable data, string title, string outputPath)
         {
             XmlWriter writer;
             DataTable summary;
@@ -179,22 +167,8 @@ namespace HeavyDuck.Eve.AssetManager
                 // create the writer
                 writer = CreateWriter(output);
 
-                // start the document
-                writer.WriteStartElement("html");
-                writer.WriteStartElement("head");
-                writer.WriteElementString("title", "Materials");
-                
-                // CSS
-                WriteCss(writer, REPORT_CSS);
-                WriteCss(writer, ".subgroup th { background-color: #FFC; }");
-
-                // finish the header
-                writer.WriteEndElement(); // head
-
-                // start ye body
-                writer.WriteStartElement("body");
-                writer.WriteElementString("h1", "Materials");
-                WriteVersionP(writer);
+                // start writing
+                WriteToBody(writer, title, ".subgroup th { background-color: #FFC; }");
                 writer.WriteStartElement("table");
 
                 // the stuff for grouping
@@ -381,6 +355,27 @@ namespace HeavyDuck.Eve.AssetManager
 
             // the writer
             return XmlWriter.Create(output, settings);
+        }
+
+        private static void WriteToBody(XmlWriter writer, string title, params string[] extraCss)
+        {
+            // start the document
+            writer.WriteStartElement("html");
+            writer.WriteStartElement("head");
+            writer.WriteElementString("title", title);
+
+            // CSS
+            WriteCss(writer, REPORT_CSS);
+            foreach (string css in extraCss)
+                WriteCss(writer, css);
+
+            // finish the header
+            writer.WriteEndElement(); // head
+
+            // start ye body
+            writer.WriteStartElement("body");
+            writer.WriteElementString("h1", title);
+            WriteVersionP(writer);
         }
 
         private static void WriteCss(XmlWriter writer, string styles)
