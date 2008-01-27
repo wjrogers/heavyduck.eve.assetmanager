@@ -21,6 +21,8 @@ namespace HeavyDuck.Eve.AssetManager
         private ToolStripLabel m_countLabel;
         private List<SearchClauseControl> m_searchControls;
 
+        private DoubleBufferedDataGridView grid;
+
         public MainForm()
         {
             InitializeComponent();
@@ -47,6 +49,12 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            // create the grid
+            grid = new DoubleBufferedDataGridView();
+            grid.Dock = DockStyle.Fill;
+            this.Controls.Add(grid);
+            grid.BringToFront();
+
             // prep the asset grid
             GridHelper.Initialize(grid, true);
             GridHelper.AddColumn(grid, "typeName", "Name");
@@ -525,6 +533,14 @@ namespace HeavyDuck.Eve.AssetManager
             if (ex == null) throw new ArgumentNullException("ex");
             string message = string.IsNullOrEmpty(intro) ? ex.ToString() : intro + "\n\n" + ex.ToString();
             MessageBox.Show(this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    internal class DoubleBufferedDataGridView : DataGridView
+    {
+        public DoubleBufferedDataGridView() : base()
+        {
+            this.DoubleBuffered = true;
         }
     }
 }
