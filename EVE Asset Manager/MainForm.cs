@@ -162,70 +162,12 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void menu_reports_loadouts_Click(object sender, EventArgs e)
         {
-            List<WhereClause> clauses;
-            DataTable assets;
-            ProgressDialog dialog;
-
-            try
-            {
-                dialog = new ProgressDialog();
-                dialog.AddTask(delegate(IProgressDialog p)
-                {
-                    p.Update(0, 2);
-
-                    // create our clauses and get assets
-                    p.Update("Querying assets...");
-                    clauses = new List<WhereClause>();
-                    clauses.Add(new WhereClause("containerCategory = 'Ship'", null, null));
-                    assets = AssetCache.GetAssetTable(clauses);
-                    p.Advance();
-
-                    // generate report
-                    p.Update("Generating report...");
-                    Reporter.GenerateLoadoutReport(assets, @"D:\Temp\loadouts.html");
-                    p.Advance();
-
-                });
-                dialog.Show();
-
-            }
-            catch (Exception ex)
-            {
-                ShowException("Failed to generate report:", ex);
-            }
+            GenerateReport("Ship Loadouts", Reporter.GenerateLoadoutReport, new WhereClause("containerCategory = 'Ship'", null, null));
         }
 
         private void menu_reports_material_Click(object sender, EventArgs e)
         {
-            List<WhereClause> clauses;
-            DataTable assets;
-            ProgressDialog dialog;
-
-            try
-            {
-                dialog = new ProgressDialog();
-                dialog.AddTask(delegate(IProgressDialog p)
-                {
-                    p.Update(0, 2);
-
-                    // create classes, get assets
-                    p.Update("Querying assets...");
-                    clauses = new List<WhereClause>();
-                    clauses.Add(new WhereClause("cat.categoryName = 'Material'", null, null));
-                    assets = AssetCache.GetAssetTable(clauses);
-                    p.Advance();
-
-                    // generate report
-                    p.Update("Generating report...");
-                    Reporter.GenerateMaterialReport(assets, @"D:\Temp\material.html");
-                    p.Advance();
-                });
-                dialog.Show();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Failed to generate report:", ex);
-            }
+            GenerateReport("Materials", Reporter.GenerateMaterialReport, new WhereClause("cat.categoryName = 'Material'", null, null));
         }
 
         private void menu_options_refresh_Click(object sender, EventArgs e)
@@ -263,7 +205,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         #endregion
 
-        private void BuildWhereClause()
+        private List<WhereClause> GetWhereClauses()
         {
             List<WhereClause> clauses = new List<WhereClause>();
 
@@ -301,7 +243,7 @@ namespace HeavyDuck.Eve.AssetManager
                 clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), parameterName, value));
             }
 
-            m_clauses = clauses;
+            return clauses;
         }
 
         private void InitializeSearchControls()
@@ -370,6 +312,53 @@ namespace HeavyDuck.Eve.AssetManager
             search_panel.Height = 6 + m_searchControls.Count * 27;
         }
 
+        private void GenerateReport(string defaultTitle, GenerateReportDelegate reportMethod, params WhereClause[] customClauses)
+        {
+            List<WhereClause> clauses;
+            DataTable assets;
+            ProgressDialog dialog;
+            ReportOptionsDialog options;
+
+            // ask the user some stuff
+            options = new ReportOptionsDialog();
+            options.ReportTitle = defaultTitle;
+            if (options.ShowDialog(this) == DialogResult.Cancel) return;
+
+            // create clauses
+            clauses = new List<WhereClause>(customClauses);
+            if (options.UseCurrentFields) clauses.AddRange(GetWhereClauses());
+
+            try
+            {
+                dialog = new ProgressDialog();
+                dialog.AddTask(delegate(IProgressDialog p)
+                {
+                    p.Update(0, 2);
+
+                    // create our clauses and get assets
+                    p.Update("Querying assets...");
+                    assets = AssetCache.GetAssetTable(clauses);
+                    p.Advance();
+
+                    // generate report
+                    p.Update("Generating report...");
+                    reportMethod(assets, options.ReportTitle, options.ReportPath);
+                    p.Advance();
+
+                });
+                dialog.Show();
+
+            }
+            catch (Exception ex)
+            {
+                ShowException("Failed to generate report:", ex);
+                return;
+            }
+
+            // open the report
+            System.Diagnostics.Process.Start(options.ReportPath);
+        }
+
         private void UpdateAssetCount()
         {
             int total = 0;
@@ -405,7 +394,7 @@ namespace HeavyDuck.Eve.AssetManager
             ProgressDialog dialog;
 
             // update our internal representation of the search boxes
-            BuildWhereClause();
+            m_clauses = GetWhereClauses();
 
             // run the query on the asset database again
             try

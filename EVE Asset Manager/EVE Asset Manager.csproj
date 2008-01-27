@@ -94,6 +94,10 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="ReportOptionsDialog.resx">
+      <DependentUpon>ReportOptionsDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="SearchClauseControl.resx">
       <SubType>Designer</SubType>
       <DependentUpon>SearchClauseControl.cs</DependentUpon>
@@ -113,6 +117,12 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="Reporter.cs" />
+    <Compile Include="ReportOptionsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportOptionsDialog.Designer.cs">
+      <DependentUpon>ReportOptionsDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="SearchClauseControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
