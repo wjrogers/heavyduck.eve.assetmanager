@@ -29,7 +29,6 @@ namespace HeavyDuck.Eve.AssetManager
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.grid = new System.Windows.Forms.DataGridView();
             this.toolbar = new System.Windows.Forms.ToolStrip();
             this.search_panel = new System.Windows.Forms.Panel();
             this.menu = new System.Windows.Forms.MenuStrip();
@@ -45,18 +44,8 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_options_keys = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help_about = new System.Windows.Forms.ToolStripMenuItem();
-            ((System.ComponentModel.ISupportInitialize)(this.grid)).BeginInit();
             this.menu.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // grid
-            // 
-            this.grid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.grid.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.grid.Location = new System.Drawing.Point(0, 191);
-            this.grid.Name = "grid";
-            this.grid.Size = new System.Drawing.Size(772, 365);
-            this.grid.TabIndex = 2;
             // 
             // toolbar
             // 
@@ -175,7 +164,6 @@ namespace HeavyDuck.Eve.AssetManager
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(772, 556);
-            this.Controls.Add(this.grid);
             this.Controls.Add(this.search_panel);
             this.Controls.Add(this.toolbar);
             this.Controls.Add(this.menu);
@@ -184,7 +172,6 @@ namespace HeavyDuck.Eve.AssetManager
             this.MainMenuStrip = this.menu;
             this.Name = "MainForm";
             this.Text = "EVE Asset Manager";
-            ((System.ComponentModel.ISupportInitialize)(this.grid)).EndInit();
             this.menu.ResumeLayout(false);
             this.menu.PerformLayout();
             this.ResumeLayout(false);
@@ -194,7 +181,6 @@ namespace HeavyDuck.Eve.AssetManager
 
         #endregion
 
-        private System.Windows.Forms.DataGridView grid;
         private System.Windows.Forms.ToolStrip toolbar;
         private System.Windows.Forms.Panel search_panel;
         private System.Windows.Forms.MenuStrip menu;
