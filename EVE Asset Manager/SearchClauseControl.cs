@@ -39,7 +39,7 @@ namespace HeavyDuck.Eve.AssetManager
             m_fields.Add(new SearchField("Container", "ct.typeName", SearchField.SearchFieldType.String));
 
             // location
-            m_fields.Add(new SearchField("Location", "COALESCE(l.itemName, cl.itemName)", SearchField.SearchFieldType.String));
+            m_fields.Add(new SearchField("Location", "l.itemName", SearchField.SearchFieldType.String));
 
             // owner
             m_fields.Add(new SearchField("Owner", "a.characterName", SearchField.SearchFieldType.String));

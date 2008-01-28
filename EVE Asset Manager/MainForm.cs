@@ -68,7 +68,6 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "flagName", "Flag");
             GridHelper.AddColumn(grid, "itemID", "ID");
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            grid.AllowUserToResizeColumns = false;
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
             // the label for counting assets
@@ -212,10 +211,11 @@ namespace HeavyDuck.Eve.AssetManager
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
                     // create the database only if it does not already exist!
-                    if (!File.Exists(Program.LocalCachePath)) AssetCache.InitializeDB();
+                    if (!File.Exists(AssetCache.LocalCachePath)) AssetCache.InitializeDB();
 
                     // process the file
                     AssetCache.ParseAssets(dialog.FileName, "Unknown");
+                    AssetCache.FixLocationIDs();
 
                     // update the count
                     UpdateAssetCount();
@@ -528,7 +528,7 @@ namespace HeavyDuck.Eve.AssetManager
             int total = 0;
 
             // count the total number of assets in the local db
-            using (SQLiteConnection conn = new SQLiteConnection(Program.ConnectionString))
+            using (SQLiteConnection conn = new SQLiteConnection(AssetCache.ConnectionString))
             {
                 conn.Open();
 
@@ -583,7 +583,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // clear the assets and set our dialog value/max
             m_assets = null;
-            dialog.Update(0, 5);
+            dialog.Update(0, 6);
 
             // make sure our character list is up to date
             dialog.Update("Refreshing character list...");
@@ -603,17 +603,10 @@ namespace HeavyDuck.Eve.AssetManager
                 bool queryCorp = Convert.ToBoolean(row["queryCorp"]);
 
                 // fetch character assets
-                try
-                {
-                    if (!assetFiles.ContainsKey(characterName))
-                        assetFiles[characterName] = EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID);
-                    else
-                        System.Diagnostics.Debug.WriteLine("Odd, got two records for the same character name... " + characterName);
-                }
-                catch (Exception ex)
-                {
-                    ShowException("Error retrieving assets:", ex);
-                }
+                if (!assetFiles.ContainsKey(characterName))
+                    assetFiles[characterName] = EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID);
+                else
+                    System.Diagnostics.Debug.WriteLine("Odd, got two records for the same character name... " + characterName);
 
                 // fetch corporation assets?
                 try
@@ -621,17 +614,17 @@ namespace HeavyDuck.Eve.AssetManager
                     if (queryCorp && !assetFiles.ContainsKey(corporationName))
                         assetFiles[corporationName] = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
                 }
-                catch (Exception ex)
+                catch (EveApiException ex)
                 {
                     // we don't care about errors due to inadequate permissions, but we will switch off corp data for this character
-                    if (ex is EveApiException && ((EveApiException)ex).ErrorCode == 209)
+                    if (ex.ErrorCode == 209)
                     {
                         System.Diagnostics.Debug.WriteLine(characterName + " is not a Director or CEO of " + corporationName + ".");
                         row["queryCorp"] = false;
                     }
                     else
                     {
-                        ShowException("Error retrieving corp assets:", ex);
+                        throw;
                     }
                 }
             }
@@ -639,15 +632,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // init the database
             dialog.Update("Initializing local asset database...");
-            try
-            {
-                AssetCache.InitializeDB();
-            }
-            catch (Exception ex)
-            {
-                ShowException("Failed to initialize the asset database:", ex);
-                return;
-            }
+            AssetCache.InitializeDB();
             dialog.Advance();
 
             // parse the files
@@ -655,16 +640,13 @@ namespace HeavyDuck.Eve.AssetManager
             foreach (string characterName in assetFiles.Keys)
             {
                 string assetFile = assetFiles[characterName];
-
-                try
-                {
-                    AssetCache.ParseAssets(assetFile, characterName);
-                }
-                catch (Exception ex)
-                {
-                    ShowException("Error parsing assets:", ex);
-                }
+                AssetCache.ParseAssets(assetFile, characterName);
             }
+            dialog.Advance();
+
+            // fix IDs
+            dialog.Update("Back-filling location IDs...");
+            AssetCache.FixLocationIDs();
             dialog.Advance();
         }
 
