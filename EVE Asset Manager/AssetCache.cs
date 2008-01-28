@@ -51,7 +51,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        public static DataTable GetAssetTable(IEnumerable<WhereClause> clauses)
+        public static DataTable GetAssetTable(IList<WhereClause> clauses)
         {
             StringBuilder sql;
             DataTable table = new DataTable("Assets");
@@ -87,18 +87,38 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.eveNames cl ON cl.itemID = c.locationID ");
 
                 // add where stuff
-                if (clauses != null)
+                if (clauses != null && clauses.Count > 0)
                 {
-                    List<string> whereParts = new List<string>();
+                    BooleanOp firstOp = clauses[0].BooleanOp;
+                    StringBuilder sb = new StringBuilder();
+                    bool parens = false;
 
-                    foreach (WhereClause clause in clauses)
-                        whereParts.Add(clause.Clause);
+                    // add the first clause
+                    sb.Append(clauses[0].Clause);
 
-                    if (whereParts.Count > 0)
+                    // loop through the rest
+                    for (int i = 1; i < clauses.Count; ++i)
                     {
-                        sql.Append("WHERE ");
-                        sql.Append(string.Join(" AND ", whereParts.ToArray()));
+                        if (clauses[i].BooleanOp != firstOp && !parens)
+                        {
+                            sb.AppendFormat(" {0} ({1}", firstOp.ToString().ToUpper(), clauses[i].Clause);
+                            parens = true;
+                        }
+                        else if (clauses[i].BooleanOp == firstOp && parens)
+                        {
+                            sb.AppendFormat(") {0} {1}", firstOp.ToString().ToUpper(), clauses[i].Clause);
+                            parens = false;
+                        }
+                        else
+                        {
+                            sb.AppendFormat(" {0} {1}", clauses[i].BooleanOp.ToString().ToUpper(), clauses[i].Clause);
+                        }
                     }
+                    if (parens) sb.Append(")");
+
+                    // add to the sql string
+                    sql.Append("WHERE ");
+                    sql.Append(sb.ToString());
                 }
 
                 // start the command we will use
