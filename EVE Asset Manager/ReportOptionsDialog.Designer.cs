@@ -101,9 +101,9 @@
             this.use_current_check.AutoSize = true;
             this.use_current_check.Location = new System.Drawing.Point(47, 64);
             this.use_current_check.Name = "use_current_check";
-            this.use_current_check.Size = new System.Drawing.Size(143, 17);
+            this.use_current_check.Size = new System.Drawing.Size(174, 17);
             this.use_current_check.TabIndex = 5;
-            this.use_current_check.Text = "Use current search fields";
+            this.use_current_check.Text = "Filter using current search fields";
             this.use_current_check.UseVisualStyleBackColor = true;
             // 
             // browse_button

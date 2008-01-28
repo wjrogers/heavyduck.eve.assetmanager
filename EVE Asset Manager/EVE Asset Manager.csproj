@@ -53,6 +53,7 @@
       <DependentUpon>AboutForm.cs</DependentUpon>
     </Compile>
     <Compile Include="AssetCache.cs" />
+    <Compile Include="DataStore.cs" />
     <Compile Include="KeyManager.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -154,6 +155,8 @@
     <None Include="Resources\magnifier.png" />
     <None Include="Resources\page_white.png" />
     <None Include="Resources\add.png" />
+    <None Include="Resources\disk.png" />
+    <None Include="Resources\folder.png" />
     <Content Include="treasure-chest.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

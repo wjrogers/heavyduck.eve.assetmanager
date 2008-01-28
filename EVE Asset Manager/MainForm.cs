@@ -35,6 +35,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
+            this.KeyDown += new KeyEventHandler(MainForm_KeyDown);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
@@ -67,6 +68,8 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "flagName", "Flag");
             GridHelper.AddColumn(grid, "itemID", "ID");
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            grid.AllowUserToResizeColumns = false;
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
             // the label for counting assets
             m_countLabel = new ToolStripLabel();
@@ -78,25 +81,38 @@ namespace HeavyDuck.Eve.AssetManager
             toolbar.Items.Add(new ToolStripButton("Query", Properties.Resources.magnifier, ToolStripItem_Click, "query"));
             toolbar.Items.Add(new ToolStripButton("Add Field", Properties.Resources.add, ToolStripItem_Click, "add_field"));
             toolbar.Items.Add(new ToolStripButton("Reset Fields", Properties.Resources.page_white, ToolStripItem_Click, "reset_fields"));
+            toolbar.Items.Add(new ToolStripSeparator());
+            toolbar.Items.Add(new ToolStripButton("Save Query", Properties.Resources.disk, ToolStripItem_Click, "save_query"));
+            toolbar.Items.Add(new ToolStripDropDownButton("Load Query", Properties.Resources.folder, null, "load_query"));
             toolbar.Items.Add(m_countLabel);
 
             // toolbar tooltips
             toolbar.Items["query"].ToolTipText = "Search your assets using the criteria in the fields below";
             toolbar.Items["add_field"].ToolTipText = "Add another search field";
             toolbar.Items["reset_fields"].ToolTipText = "Reset all the search fields";
+            toolbar.Items["save_query"].ToolTipText = "Save the current search fields for later";
 
             // initialize the UI with stuff
             InitializeSearchControls();
             UpdateAssetCount();
+            UpdateSavedSearches();
         }
 
+        private void MainForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            // prevent the bonk sound when hitting enter on a search control
+            if (e.KeyCode == Keys.Enter && this.ActiveControl is SearchClauseControl)
+            {
+                e.SuppressKeyPress = true;
+            }
+        }
 
         private void MainForm_KeyUp(object sender, KeyEventArgs e)
         {
             // auto-hook enter on a search control to mean query
             if (e.KeyCode == Keys.Enter && this.ActiveControl is SearchClauseControl)
             {
-                e.Handled = true;
+                e.SuppressKeyPress = true;
                 this.BeginInvoke((MethodInvoker)RunQuery);
             }
         }
@@ -118,6 +134,54 @@ namespace HeavyDuck.Eve.AssetManager
                 case "reset_fields":
                     InitializeSearchControls();
                     break;
+                case "save_query":
+                    SaveSearch();
+                    break;
+            }
+        }
+
+        private void ToolStripSearch_Click(object sender, EventArgs e)
+        {
+            DataTable fields;
+            SearchClauseControl control;
+            ToolStripItem item = sender as ToolStripItem;
+            if (item == null) return;
+
+            // we stuck the id in the item's tag
+            long id = (long)item.Tag;
+
+            try
+            {
+                // load from the databaser
+                fields = DataStore.GetSavedSearchParameters(id);
+
+                // clear the list, then add in each search parameter
+                ClearSearchControls();
+                foreach (DataRow row in fields.Rows)
+                {
+                    // read the values from the row
+                    string fieldName = row["fieldName"].ToString();
+                    SearchClauseControl.BooleanOp booleanOp = (SearchClauseControl.BooleanOp)Enum.Parse(typeof(SearchClauseControl.BooleanOp), row["booleanOp"].ToString());
+                    SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
+                    string value = row["value"].ToString();
+
+                    // add the parameter
+                    control = AddSearchControl(fieldName);
+                    control.SelectedBooleanOp = booleanOp;
+                    control.SelectedComparisonOp = comparisonOp;
+                    control.ValueText = value;
+                }
+
+                // run the query
+                RunQuery();
+            }
+            catch (Exception ex)
+            {
+                ShowException(ex);
+            }
+            finally
+            {
+                UpdateSearchPanel();
             }
         }
 
@@ -213,6 +277,8 @@ namespace HeavyDuck.Eve.AssetManager
 
         #endregion
 
+        #region Private Methods - Query Fields
+
         private List<WhereClause> GetWhereClauses()
         {
             List<WhereClause> clauses = new List<WhereClause>();
@@ -243,6 +309,18 @@ namespace HeavyDuck.Eve.AssetManager
                     case SearchClauseControl.ComparisonOp.NotLike:
                         format = "{0} NOT LIKE '%' || {1} || '%'";
                         break;
+                    case SearchClauseControl.ComparisonOp.LessThan:
+                        format = "{0} < {1}";
+                        break;
+                    case SearchClauseControl.ComparisonOp.LessThanOrEqual:
+                        format = "{0} <= {1}";
+                        break;
+                    case SearchClauseControl.ComparisonOp.GreaterThan:
+                        format = "{0} > {1}";
+                        break;
+                    case SearchClauseControl.ComparisonOp.GreaterThanOrEqual:
+                        format = "{0} >= {1}";
+                        break;
                     default:
                         throw new InvalidOperationException("Don't know how to construct where clause for ComparisonOp" + op);
                 }
@@ -256,12 +334,8 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void InitializeSearchControls()
         {
-            // remove any in there
-            foreach (SearchClauseControl control in m_searchControls)
-            {
-                RemoveSearchControl(control);
-            }
-            m_searchControls.Clear();
+            // clear it out
+            ClearSearchControls();
 
             // add three
             AddSearchControl("Name");
@@ -270,17 +344,27 @@ namespace HeavyDuck.Eve.AssetManager
             UpdateSearchPanel();
         }
 
-        private void AddSearchControl()
+        private void ClearSearchControls()
         {
-            AddSearchControl(new SearchClauseControl());
+            // remove any in there
+            foreach (SearchClauseControl control in m_searchControls)
+            {
+                RemoveSearchControl(control);
+            }
+            m_searchControls.Clear();
         }
 
-        private void AddSearchControl(string fieldName)
+        private SearchClauseControl AddSearchControl()
         {
-            AddSearchControl(new SearchClauseControl(fieldName));
+            return AddSearchControl(new SearchClauseControl());
         }
 
-        private void AddSearchControl(SearchClauseControl control)
+        private SearchClauseControl AddSearchControl(string fieldName)
+        {
+            return AddSearchControl(new SearchClauseControl(fieldName));
+        }
+
+        private SearchClauseControl AddSearchControl(SearchClauseControl control)
         {
             // initialize the control
             control.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -293,6 +377,9 @@ namespace HeavyDuck.Eve.AssetManager
 
             // add the click handler
             control.RemoveClicked += new EventHandler(searchControl_RemoveClicked);
+
+            // send it back
+            return control;
         }
 
         private void RemoveSearchControl(SearchClauseControl control)
@@ -319,6 +406,74 @@ namespace HeavyDuck.Eve.AssetManager
             // size the panel correctly
             search_panel.Height = 6 + m_searchControls.Count * 27;
         }
+
+        private void SaveSearch()
+        {
+            List<SearchClauseControl> controls;
+            string name = "";
+
+            if (InputDialog.ShowDialog(this, "Search Name", "Enter a name for the saved search:", ref name) == DialogResult.OK)
+            {
+                // get the list of controls
+                controls = new List<SearchClauseControl>();
+                foreach (Control c in search_panel.Controls)
+                {
+                    if (c is SearchClauseControl) controls.Add((SearchClauseControl)c);
+                }
+
+                // save them
+                try
+                {
+                    DataStore.SaveSearch(name, controls);
+                }
+                catch (Exception ex)
+                {
+                    ShowException(ex);
+                }
+
+                // refresh the menu
+                UpdateSavedSearches();
+            }
+        }
+
+        private void UpdateSavedSearches()
+        {
+            DataTable searches;
+            ToolStripDropDownButton button;
+            ToolStripDropDown menu;
+            ToolStripButton item;
+
+            // grab the table of saved searches from our datastore
+            try
+            {
+                searches = DataStore.GetSavedSearches();
+            }
+            catch (Exception ex)
+            {
+                ShowException(ex);
+                return;
+            }
+
+            // build the menu
+            button = (ToolStripDropDownButton)toolbar.Items["load_query"];
+            menu = new ToolStripDropDown();
+            foreach (DataRow row in searches.Rows)
+            {
+                string name = row["name"].ToString();
+                long id = Convert.ToInt64(row["id"]);
+
+                item = new ToolStripButton(name, Properties.Resources.magnifier);
+                item.Click += new EventHandler(ToolStripSearch_Click);
+                item.Tag = id;
+
+                menu.Items.Add(item);
+            }
+            button.DropDown = menu;
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private void GenerateReport(string defaultTitle, GenerateReportDelegate reportMethod, params WhereClause[] customClauses)
         {
@@ -534,6 +689,8 @@ namespace HeavyDuck.Eve.AssetManager
             string message = string.IsNullOrEmpty(intro) ? ex.ToString() : intro + "\n\n" + ex.ToString();
             MessageBox.Show(this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+
+        #endregion
     }
 
     internal class DoubleBufferedDataGridView : DataGridView

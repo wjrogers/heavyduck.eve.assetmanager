@@ -46,6 +46,9 @@ namespace HeavyDuck.Eve.AssetManager
 
             // id
             m_fields.Add(new SearchField("ID", "a.itemID", SearchField.SearchFieldType.Number));
+
+            // quantity
+            m_fields.Add(new SearchField("Count", "a.quantity", SearchField.SearchFieldType.Number));
         }
 
         private static DataTable GetFieldOptions(string sql)
@@ -79,6 +82,11 @@ namespace HeavyDuck.Eve.AssetManager
             // event handlers
             remove_button.Click += new EventHandler(remove_button_Click);
             field_combo.SelectedIndexChanged += new EventHandler(field_combo_SelectedIndexChanged);
+
+            // initialize boolean drop-down
+            boolean_combo.Items.Add(BooleanOp.And);
+            boolean_combo.Items.Add(BooleanOp.Or);
+            boolean_combo.SelectedIndex = 0;
 
             // setup the op table
             m_op_table = new DataTable("Operators");
@@ -137,6 +145,10 @@ namespace HeavyDuck.Eve.AssetManager
                 case SearchField.SearchFieldType.Number:
                     m_op_table.LoadDataRow(new object[] { "Equals", ComparisonOp.Equals }, true);
                     m_op_table.LoadDataRow(new object[] { "Not Equals", ComparisonOp.NotEquals }, true);
+                    m_op_table.LoadDataRow(new object[] { "<", ComparisonOp.LessThan }, true);
+                    m_op_table.LoadDataRow(new object[] { "<=", ComparisonOp.LessThanOrEqual }, true);
+                    m_op_table.LoadDataRow(new object[] { ">", ComparisonOp.GreaterThan }, true);
+                    m_op_table.LoadDataRow(new object[] { ">=", ComparisonOp.GreaterThanOrEqual }, true);
                     break;
             }
             m_op_table.EndLoadData();
@@ -153,7 +165,24 @@ namespace HeavyDuck.Eve.AssetManager
         }
 
         /// <summary>
-        /// Gets the selected comparison operator.
+        /// Sets the selected search field.
+        /// </summary>
+        public void SetField(string fieldName)
+        {
+            field_combo.SelectedIndex = field_combo.FindString(fieldName);
+        }
+
+        /// <summary>
+        /// Gets or sets the selected boolean operator.
+        /// </summary>
+        public BooleanOp SelectedBooleanOp
+        {
+            get { return (BooleanOp)boolean_combo.SelectedItem; }
+            set { boolean_combo.SelectedValue = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the selected comparison operator.
         /// </summary>
         public ComparisonOp SelectedComparisonOp
         {
@@ -170,7 +199,7 @@ namespace HeavyDuck.Eve.AssetManager
         }
 
         /// <summary>
-        /// Gets the current value of the search field.
+        /// Gets or sets the current value of the search field.
         /// </summary>
         public object Value
         {
@@ -192,6 +221,53 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // now return it
                 return value;
+            }
+            set
+            {
+                if (m_edit_control is TextBox)
+                    ((TextBox)m_edit_control).Text = value == null ? null : value.ToString();
+                else if (m_edit_control is ComboBox)
+                    ((ComboBox)m_edit_control).SelectedValue = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the current text displayed in the search field's value control.
+        /// </summary>
+        public string ValueText
+        {
+            get
+            {
+                string value;
+
+                // extract from the edit control if we can
+                if (m_edit_control is TextBox)
+                    value = ((TextBox)m_edit_control).Text;
+                else if (m_edit_control is ComboBox)
+                    value = ((ComboBox)m_edit_control).Text;
+                else
+                    value = null;
+
+                // check for empty strings
+                if (value != null && value.Trim() == "")
+                    value = null;
+
+                // return
+                return value;
+            }
+            set
+            {
+                if (m_edit_control is TextBox)
+                {
+                    ((TextBox)m_edit_control).Text = value;
+                }
+                else if (m_edit_control is ComboBox)
+                {
+                    ComboBox box = (ComboBox)m_edit_control;
+                    int i = box.FindStringExact(value);
+
+                    if (i >= 0) box.SelectedIndex = i;
+                }
             }
         }
 
@@ -215,7 +291,11 @@ namespace HeavyDuck.Eve.AssetManager
             Like,
             NotLike,
             Equals,
-            NotEquals
+            NotEquals,
+            LessThan,
+            LessThanOrEqual,
+            GreaterThan,
+            GreaterThanOrEqual
         }
 
         public class SearchField
