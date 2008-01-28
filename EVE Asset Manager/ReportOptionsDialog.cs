@@ -26,7 +26,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // initialize the report path
             if (!string.IsNullOrEmpty(title))
-                ReportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), string.Format("{0}_{1:yyyyMMddHHmm}.html", title.Replace(" ", ""), DateTime.Now));
+                ReportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), string.Format("EVE_{0}_{1:yyyyMMddHHmm}.html", title.Replace(" ", ""), DateTime.Now));
         }
 
         private void browse_button_Click(object sender, EventArgs e)

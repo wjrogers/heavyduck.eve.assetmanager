@@ -167,6 +167,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.Controls.Add(this.search_panel);
             this.Controls.Add(this.toolbar);
             this.Controls.Add(this.menu);
+            this.DoubleBuffered = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MainMenuStrip = this.menu;

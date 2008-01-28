@@ -342,6 +342,8 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
+        #region Private Methods
+
         private static XmlWriter CreateWriter(Stream output)
         {
             XmlWriterSettings settings;
@@ -459,5 +461,7 @@ namespace HeavyDuck.Eve.AssetManager
             else
                 return "<small class=\"g\">ISK</small> " + FormatDouble1(value);
         }
+
+        #endregion
     }
 }
