@@ -11,6 +11,11 @@ namespace HeavyDuck.Eve.AssetManager
 {
     internal static class AssetCache
     {
+        private const int MAX_FIX_ID_RUNS = 20;
+
+        private static readonly string m_localCachePath = Path.Combine(Program.DataPath, "assets.db");
+        private static readonly string m_connectionString = "Data Source=" + m_localCachePath;
+
         public static void InitializeDB()
         {
             SQLiteConnection conn = null;
@@ -18,26 +23,26 @@ namespace HeavyDuck.Eve.AssetManager
             StringBuilder sql;
 
             // delete any existing file
-            if (File.Exists(Program.LocalCachePath)) File.Delete(Program.LocalCachePath);
+            if (File.Exists(LocalCachePath)) File.Delete(LocalCachePath);
            
             // let's connect
             try
             {
                 // connect to our brand new database
-                conn = new SQLiteConnection(Program.ConnectionString);
+                conn = new SQLiteConnection(ConnectionString);
                 conn.Open();
 
                 // let's build up a create table statement
                 sql = new StringBuilder();
                 sql.Append("CREATE TABLE assets (");
-                sql.Append("itemID INT PRIMARY KEY,");
+                sql.Append("itemID INTEGER PRIMARY KEY,");
                 sql.Append("characterName STRING,");
-                sql.Append("locationID INT,");
-                sql.Append("typeID INT,");
-                sql.Append("quantity INT,");
-                sql.Append("flag INT,");
+                sql.Append("locationID INTEGER,");
+                sql.Append("typeID INTEGER,");
+                sql.Append("quantity INTEGER,");
+                sql.Append("flag INTEGER,");
                 sql.Append("singleton BOOL,");
-                sql.Append("containerID INT");
+                sql.Append("containerID INTEGER");
                 sql.Append(")");
 
                 // create our command and create the table
@@ -57,7 +62,7 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable table = new DataTable("Assets");
 
             // connect to our lovely database
-            using (SQLiteConnection conn = new SQLiteConnection(Program.ConnectionString))
+            using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
             {
                 conn.Open();
 
@@ -72,7 +77,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, COALESCE(l.itemName, cl.itemName) AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, l.itemName AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
@@ -84,7 +89,6 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.invTypes ct ON ct.typeID = c.typeID ");
                 sql.Append("LEFT JOIN eve.invGroups cg ON cg.groupID = ct.groupID ");
                 sql.Append("LEFT JOIN eve.invCategories ccat ON ccat.categoryID = cg.categoryID ");
-                sql.Append("LEFT JOIN eve.eveNames cl ON cl.itemID = c.locationID ");
 
                 // add where stuff
                 if (clauses != null && clauses.Count > 0)
@@ -146,6 +150,47 @@ namespace HeavyDuck.Eve.AssetManager
             return table;
         }
 
+        public static void FixLocationIDs()
+        {
+            SQLiteConnection conn = null;
+            SQLiteTransaction trans = null;
+            int affected, runs;
+
+            try
+            {
+                conn = new SQLiteConnection(ConnectionString);
+                conn.Open();
+                trans = conn.BeginTransaction();
+
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE assets SET locationID = (SELECT locationID FROM assets a WHERE a.itemID = assets.containerID) WHERE locationID IS NULL";
+                    affected = 1;
+                    runs = 0;
+
+                    // keep running this query until it has no effect (all locationIDs are populated) or we hit the limit
+                    while (affected > 0 && runs < MAX_FIX_ID_RUNS)
+                    {
+                        affected = cmd.ExecuteNonQuery();
+                        runs++;
+                    }
+                }
+
+                // commit
+                trans.Commit();
+            }
+            catch
+            {
+                trans.Rollback();
+                throw;
+            }
+            finally
+            {
+                if (trans != null) trans.Dispose();
+                if (conn != null) conn.Dispose();
+            }
+        }
+
         public static void ParseAssets(string filePath, string characterName)
         {
             SQLiteConnection conn = null;
@@ -155,7 +200,7 @@ namespace HeavyDuck.Eve.AssetManager
             try
             {
                 // create and open the connection
-                conn = new SQLiteConnection(Program.ConnectionString);
+                conn = new SQLiteConnection(ConnectionString);
                 conn.Open();
 
                 // start the transaction
@@ -237,6 +282,16 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 ProcessNode(contentIter.Current, insertCmd, itemID);
             }
+        }
+
+        public static string LocalCachePath
+        {
+            get { return m_localCachePath; }
+        }
+
+        public static string ConnectionString
+        {
+            get { return m_connectionString; }
         }
     }
 

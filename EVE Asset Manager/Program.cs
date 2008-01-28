@@ -16,8 +16,6 @@ namespace HeavyDuck.Eve.AssetManager
         private const string CCP_DB_NAME = @"trinity_1.0_sqlite3.db";
 
         private static readonly string m_dataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"HeavyDuck.Eve");
-        private static readonly string m_localCachePath = Path.Combine(m_dataPath, "assets.db");
-        private static readonly string m_connectionString = "Data Source=" + m_localCachePath;
 
         private static string m_ccpDbPath;
 
@@ -107,19 +105,9 @@ namespace HeavyDuck.Eve.AssetManager
             get { return m_dataPath; }
         }
 
-        public static string LocalCachePath
-        {
-            get { return m_localCachePath; }
-        }
-
         public static string CcpDatabasePath
         {
             get { return m_ccpDbPath; }
-        }
-
-        public static string ConnectionString
-        {
-            get { return m_connectionString; }
         }
 
         #endregion
