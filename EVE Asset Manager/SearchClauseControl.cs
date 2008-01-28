@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace HeavyDuck.Eve.AssetManager
 {
-    public partial class SearchClauseControl : UserControl
+    internal partial class SearchClauseControl : UserControl
     {
         #region Static Initialization
 
@@ -278,12 +278,6 @@ namespace HeavyDuck.Eve.AssetManager
         {
             get { return remove_button.Visible; }
             set { remove_button.Visible = value; }
-        }
-
-        public enum BooleanOp
-        {
-            And,
-            Or
         }
 
         public enum ComparisonOp

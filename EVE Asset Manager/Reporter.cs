@@ -59,8 +59,8 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
 
-            // create a view with the sort we need
-            view = new DataView(data, null, "characterName, locationName, containerName, slotOrder, typeName", DataViewRowState.CurrentRows);
+            // create a view with the sort and filter we need
+            view = new DataView(data, "containerCategory = 'Ship'", "characterName, locationName, containerName, slotOrder, typeName", DataViewRowState.CurrentRows);
 
             // open the output file
             using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
@@ -142,6 +142,11 @@ namespace HeavyDuck.Eve.AssetManager
             DataRow summaryRow;
             DataView view, summaryView;
             Dictionary<int, double> materialPrices;
+
+            // I would really like to filter the data before calling GroupBy below, so let's do a poor man's filter here
+            DataRow[] badRows = data.Select("categoryName <> 'Material'");
+            foreach (DataRow row in badRows)
+                data.Rows.Remove(row);
 
             // initialize the material price dict
             materialPrices = new Dictionary<int, double>();

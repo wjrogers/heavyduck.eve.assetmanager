@@ -9,7 +9,7 @@ using System.Xml.XPath;
 
 namespace HeavyDuck.Eve.AssetManager
 {
-    static class AssetCache
+    internal static class AssetCache
     {
         public static void InitializeDB()
         {
@@ -220,15 +220,23 @@ namespace HeavyDuck.Eve.AssetManager
         }
     }
 
-    class WhereClause
+    internal enum BooleanOp
+    {
+        And,
+        Or
+    }
+
+    internal class WhereClause
     {
         private string m_clause;
         private string m_parameterName;
         private object m_parameterValue;
+        private BooleanOp m_booleanOp;
 
-        public WhereClause(string clause, string parameterName, object parameterValue)
+        public WhereClause(string clause, BooleanOp booleanOp, string parameterName, object parameterValue)
         {
             m_clause = clause;
+            m_booleanOp = booleanOp;
             m_parameterName = parameterName;
             m_parameterValue = parameterValue;
         }
@@ -236,6 +244,11 @@ namespace HeavyDuck.Eve.AssetManager
         public string Clause
         {
             get { return m_clause; }
+        }
+
+        public BooleanOp BooleanOp
+        {
+            get { return m_booleanOp; }
         }
 
         public string ParameterName
