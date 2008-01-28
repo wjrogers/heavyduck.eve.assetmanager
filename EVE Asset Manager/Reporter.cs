@@ -20,6 +20,9 @@ namespace HeavyDuck.Eve.AssetManager
             XmlWriter writer;
             DataColumn flagNameColumn, slotOrderColumn, classColumn;
 
+            // remove all the rows we don't care about
+            PruneTable(data, "containerCategory IS NOT NULL AND containerCategory = 'Ship'");
+
             // stealthily modify the assets table so we can sort the slots in the order we want
             flagNameColumn = data.Columns["flagName"];
             slotOrderColumn = data.Columns.Add("slotOrder", typeof(string));
@@ -59,8 +62,8 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
 
-            // create a view with the sort and filter we need
-            view = new DataView(data, "containerCategory = 'Ship'", "characterName, locationName, containerName, slotOrder, typeName", DataViewRowState.CurrentRows);
+            // create a view with the sort we need
+            view = new DataView(data, null, "characterName, locationName, containerName, slotOrder, typeName", DataViewRowState.CurrentRows);
 
             // open the output file
             using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
@@ -143,10 +146,8 @@ namespace HeavyDuck.Eve.AssetManager
             DataView view, summaryView;
             Dictionary<int, double> materialPrices;
 
-            // I would really like to filter the data before calling GroupBy below, so let's do a poor man's filter here
-            DataRow[] badRows = data.Select("categoryName <> 'Material'");
-            foreach (DataRow row in badRows)
-                data.Rows.Remove(row);
+            // remove all the rows we don't care about
+            PruneTable(data, "categoryName = 'Material'");
 
             // initialize the material price dict
             materialPrices = new Dictionary<int, double>();
@@ -348,6 +349,13 @@ namespace HeavyDuck.Eve.AssetManager
         }
 
         #region Private Methods
+
+        private static void PruneTable(DataTable table, string rowFilter)
+        {
+            DataRow[] badRows = table.Select("NOT (" + rowFilter + ")");
+            foreach (DataRow row in badRows)
+                table.Rows.Remove(row);
+        }
 
         private static XmlWriter CreateWriter(Stream output)
         {
