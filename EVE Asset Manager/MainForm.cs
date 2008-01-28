@@ -161,7 +161,7 @@ namespace HeavyDuck.Eve.AssetManager
                 {
                     // read the values from the row
                     string fieldName = row["fieldName"].ToString();
-                    SearchClauseControl.BooleanOp booleanOp = (SearchClauseControl.BooleanOp)Enum.Parse(typeof(SearchClauseControl.BooleanOp), row["booleanOp"].ToString());
+                    BooleanOp booleanOp = (BooleanOp)Enum.Parse(typeof(BooleanOp), row["booleanOp"].ToString());
                     SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
                     string value = row["value"].ToString();
 
@@ -234,12 +234,12 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void menu_reports_loadouts_Click(object sender, EventArgs e)
         {
-            GenerateReport("Ship Loadouts", Reporter.GenerateLoadoutReport, new WhereClause("containerCategory = 'Ship'", null, null));
+            GenerateReport("Ship Loadouts", Reporter.GenerateLoadoutReport);
         }
 
         private void menu_reports_material_Click(object sender, EventArgs e)
         {
-            GenerateReport("Materials", Reporter.GenerateMaterialReport, new WhereClause("cat.categoryName = 'Material'", null, null));
+            GenerateReport("Materials", Reporter.GenerateMaterialReport);
         }
 
         private void menu_options_refresh_Click(object sender, EventArgs e)
@@ -287,6 +287,7 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 SearchClauseControl.SearchField field = control.SelectedField;
                 SearchClauseControl.ComparisonOp op = control.SelectedComparisonOp;
+                BooleanOp booleanOp = control.SelectedBooleanOp;
                 string parameterName = field.GetParameterName();
                 string format;
                 object value = control.Value;
@@ -326,7 +327,7 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // fill it
-                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), parameterName, value));
+                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), booleanOp, parameterName, value));
             }
 
             return clauses;
@@ -475,7 +476,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         #region Private Methods
 
-        private void GenerateReport(string defaultTitle, GenerateReportDelegate reportMethod, params WhereClause[] customClauses)
+        private void GenerateReport(string defaultTitle, GenerateReportDelegate reportMethod)
         {
             List<WhereClause> clauses;
             DataTable assets;
@@ -488,7 +489,7 @@ namespace HeavyDuck.Eve.AssetManager
             if (options.ShowDialog(this) == DialogResult.Cancel) return;
 
             // create clauses
-            clauses = new List<WhereClause>(customClauses);
+            clauses = new List<WhereClause>();
             if (options.UseCurrentFields) clauses.AddRange(GetWhereClauses());
 
             try
