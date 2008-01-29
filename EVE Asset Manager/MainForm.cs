@@ -41,6 +41,7 @@ namespace HeavyDuck.Eve.AssetManager
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
             menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
             menu_reports_material.Click += new EventHandler(menu_reports_material_Click);
+            menu_reports_pos.Click += new EventHandler(menu_reports_pos_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
             menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
             menu_help_about.Click += new EventHandler(menu_help_about_Click);
@@ -240,6 +241,11 @@ namespace HeavyDuck.Eve.AssetManager
         private void menu_reports_material_Click(object sender, EventArgs e)
         {
             GenerateReport("Materials", Reporter.GenerateMaterialReport);
+        }
+
+        private void menu_reports_pos_Click(object sender, EventArgs e)
+        {
+            GenerateReport("POS Fuel", Reporter.GeneratePosReport);
         }
 
         private void menu_options_refresh_Click(object sender, EventArgs e)

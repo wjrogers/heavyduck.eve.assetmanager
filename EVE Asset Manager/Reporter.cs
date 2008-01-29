@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SQLite;
 using System.IO;
 using System.Text;
 using System.Xml;
@@ -12,7 +13,7 @@ namespace HeavyDuck.Eve.AssetManager
 
     internal static class Reporter
     {
-        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
+        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } .group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } .subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
 
         public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
         {
@@ -353,6 +354,176 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
+        public static void GeneratePosReport(DataTable data, string title, string outputPath)
+        {
+            XmlWriter writer;
+            DataView view;
+            DataTable fuelData;
+
+            // first, query the fuel data from the static db
+            using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath))
+            {
+                conn.Open();
+                fuelData = new DataTable("Fuel Data");
+
+                using (SQLiteDataAdapter adapter = new SQLiteDataAdapter("SELECT * FROM invControlTowerResources r JOIN invControlTowerResourcePurposes p ON p.purpose = r.purpose JOIN invTypes t ON t.typeID = r.resourceTypeID", conn))
+                    adapter.Fill(fuelData);
+
+                fuelData.PrimaryKey = new DataColumn[] { fuelData.Columns["controlTowerTypeID"], fuelData.Columns["resourceTypeID"] };
+            }
+
+            // create the view
+            view = new DataView(data, "containerGroup = 'Control Tower'", "locationName, containerName", DataViewRowState.CurrentRows);
+
+            // begin writing the actual report
+            using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
+            {
+                // create the writer
+                writer = CreateWriter(output);
+
+                // start writing
+                WriteToBody(writer, title, ".subgroup th { color: white; background-color: #666; } .low td { color: #600; background-color: #FEC; } .empty td { background-color: #FCC; }");
+                writer.WriteStartElement("table");
+
+                // grouping info
+                string currentTower = null;
+                Dictionary<long, long> itemCounts = new Dictionary<long, long>();
+                DataRow[] fuelRows = null;
+
+                // loopity
+                foreach (DataRowView row in view)
+                {
+                    // read data
+                    string tower = row["containerName"].ToString();
+                    long typeID = Convert.ToInt64(row["typeID"]);
+                    long quantity = Convert.ToInt64(row["quantity"]);
+                    
+                    // group
+                    if (tower != currentTower)
+                    {
+                        // actually write the rows for the previous tower, if any
+                        if (currentTower != null) WritePosReportGroup(writer, itemCounts, fuelRows);
+
+                        // read a couple more pieces of data about the new tower
+                        string location = row["locationName"].ToString();
+                        long locationID = Convert.ToInt64(row["locationID"]);
+                        long towerTypeID = Convert.ToInt64(row["containerTypeID"]);
+                        long? factionID;
+                        decimal security;
+
+                        // get the factionID and security level of the solar system
+                        using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath))
+                        {
+                            conn.Open();
+
+                            using (SQLiteCommand cmd = new SQLiteCommand("SELECT s.security, r.factionID FROM mapSolarSystems s JOIN mapRegions r ON r.regionID = s.regionID WHERE s.solarSystemID = " + locationID.ToString(), conn))
+                            {
+                                using (SQLiteDataReader reader = cmd.ExecuteReader())
+                                {
+                                    reader.Read();
+                                    security = Convert.ToDecimal(reader[0]);
+                                    factionID = reader.IsDBNull(1) ? (long?)null : Convert.ToInt64(reader[1]);
+                                }
+                            }
+                        }
+
+                        // build our little fuel row select
+                        StringBuilder filter = new StringBuilder();
+                        filter.AppendFormat("controlTowerTypeID = {0}", towerTypeID);
+                        filter.AppendFormat(" AND (minSecurityLevel IS NULL OR minSecurityLevel < {0})", security);
+                        if (factionID.HasValue)
+                            filter.AppendFormat(" AND (factionID IS NULL OR factionID = {0})", factionID);
+
+                        // switch to the new tower
+                        currentTower = tower;
+                        itemCounts = new Dictionary<long, long>();
+                        fuelRows = fuelData.Select(filter.ToString(), "purpose, minSecurityLevel, typeName");
+
+                        // write the big name header
+                        writer.WriteStartElement("tr");
+                        writer.WriteAttributeString("class", "group");
+                        writer.WriteStartElement("th");
+                        writer.WriteAttributeString("colspan", "5");
+                        writer.WriteRaw(string.Format("<span class=\"l\">{0}</span> / {1}", string.IsNullOrEmpty(location) ? "???" : location, tower));
+                        writer.WriteEndElement(); // th
+                        writer.WriteEndElement(); // tr
+                    }
+
+                    // count items
+                    if (itemCounts.ContainsKey(typeID))
+                        itemCounts[typeID] += quantity;
+                    else
+                        itemCounts[typeID] = quantity;
+                }
+
+                // write the duration summary for the *last* tower, if any
+                if (currentTower != null) WritePosReportGroup(writer, itemCounts, fuelRows);
+
+                // finish doc
+                writer.WriteEndDocument();
+                writer.Flush();
+            }
+        }
+
+        private static void WritePosReportGroup(XmlWriter writer, Dictionary<long, long> itemCounts, DataRow[] fuelRows)
+        {
+            Dictionary<string, TimeSpan> minDurations = new Dictionary<string, TimeSpan>();
+
+            // the fuel group header
+            WriteSubGroupRow(writer, "Fuel", 5);
+
+            // write a row for each type of fuel the POS requires
+            foreach (DataRow fuelRow in fuelRows)
+            {
+                long fuelTypeID = Convert.ToInt64(fuelRow["resourceTypeID"]);
+                string fuelName = fuelRow["typeName"].ToString();
+                string fuelPurposeText = fuelRow["purposeText"].ToString();
+                int fuelQuantity = Convert.ToInt32(fuelRow["quantity"]);
+                long quantity = itemCounts.ContainsKey(fuelTypeID) ? itemCounts[fuelTypeID] : 0;
+                TimeSpan duration = TimeSpan.FromHours(quantity / (double)fuelQuantity);
+
+                // keep track of the minimum run-time for each need
+                if (!minDurations.ContainsKey(fuelPurposeText) || duration < minDurations[fuelPurposeText])
+                    minDurations[fuelPurposeText] = duration;
+
+                // write the row
+                writer.WriteStartElement("tr");
+                WritePosReportDurationClass(writer, duration);
+                WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
+                writer.WriteElementString("td", fuelName);
+                writer.WriteElementString("td", fuelPurposeText);
+                WriteElementRawWithClass(writer, "td", "r", FormatInt32(fuelQuantity) + "<small>/hour</small>");
+                WriteElementRawWithClass(writer, "td", "r", FormatTimeSpan(duration));
+                writer.WriteEndElement(); // tr
+            }
+
+            // the group header
+            WriteSubGroupRow(writer, "Run Time Summary", 5);
+
+            // write a row for each purpose as a summary
+            foreach (string purpose in minDurations.Keys)
+            {
+                writer.WriteStartElement("tr");
+                WritePosReportDurationClass(writer, minDurations[purpose]);
+                writer.WriteElementString("td", "");
+                writer.WriteStartElement("td");
+                writer.WriteAttributeString("colspan", "3");
+                writer.WriteString(purpose);
+                writer.WriteEndElement(); // td
+                WriteElementRawWithClass(writer, "td", "r", FormatTimeSpan(minDurations[purpose]));
+                writer.WriteEndElement(); // tr
+            }
+        }
+
+        private static void WritePosReportDurationClass(XmlWriter writer, TimeSpan duration)
+        {
+            // make low supplies nice and highlitted
+            if (duration.TotalHours < 1)
+                writer.WriteAttributeString("class", "low empty");
+            else if (duration.TotalDays < 3)
+                writer.WriteAttributeString("class", "low");
+        }
+
         #region Private Methods
 
         private static void PruneTable(DataTable table, string rowFilter)
@@ -445,6 +616,14 @@ namespace HeavyDuck.Eve.AssetManager
         private static void WriteSpacerCell(XmlWriter writer)
         {
             WriteElementStringWithClass(writer, "td", "s", " ");
+        }
+
+        private static string FormatTimeSpan(TimeSpan value)
+        {
+            if (value.Days > 0)
+                return string.Format("{0}<small>d</small> {1}<small>h</small>", value.Days, value.Hours);
+            else
+                return string.Format("<span class=\"error\">{0}<small>h<small></span>", value.Hours);
         }
 
         private static string FormatInt32(object value)
