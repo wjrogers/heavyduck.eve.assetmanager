@@ -77,7 +77,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, l.itemName AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, l.itemName AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
