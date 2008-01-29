@@ -12,7 +12,7 @@ namespace HeavyDuck.Eve.AssetManager
 
     internal static class Reporter
     {
-        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .bold td { font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
+        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } tr.group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } tr.subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
 
         public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
         {
@@ -78,6 +78,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // the group variables
                 string currentShip = null;
                 string currentSlotClass = null;
+                string location;
 
                 // loop through the rows
                 for (int i = 0; i < view.Count; ++i)
@@ -95,12 +96,16 @@ namespace HeavyDuck.Eve.AssetManager
                         currentShip = ship;
                         currentSlotClass = null;
 
+                        // the location name might be null, show "???" instead
+                        location = view[i]["locationName"].ToString();
+                        if (string.IsNullOrEmpty(location)) location = "???";
+
                         // write the group row
                         writer.WriteStartElement("tr");
                         writer.WriteAttributeString("class", "group");
                         writer.WriteStartElement("th");
                         writer.WriteAttributeString("colspan", "3");
-                        writer.WriteRaw(string.Format("{0}'s <span class=\"l\">{1}</span> {2} in {3}", view[i]["characterName"], ship.Substring(0, ship.LastIndexOf('#') - 1), ship.Substring(ship.LastIndexOf('#')), view[i]["locationName"]));
+                        writer.WriteRaw(string.Format("{0}'s <span class=\"l\">{1}</span> {2} in {3}", view[i]["characterName"], ship.Substring(0, ship.LastIndexOf('#') - 1), ship.Substring(ship.LastIndexOf('#')), location));
                         writer.WriteEndElement(); // th
                         writer.WriteEndElement(); // tr
                     }
@@ -190,6 +195,9 @@ namespace HeavyDuck.Eve.AssetManager
                     string type = row["typeName"].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     double value;
+
+                    // tweak blank locations to say "???" instead
+                    if (string.IsNullOrEmpty(location)) location = "???";
                     
                     // do value-calculation stuffs
                     try
@@ -200,9 +208,6 @@ namespace HeavyDuck.Eve.AssetManager
                         {
                             // we don't have a price for this type yet, try to fetch it
                             tempValue = EveCentralHelper.GetItemAveragePrice(typeID);
-
-                            // the helper will return -1 if the price is not in the file
-                            if (tempValue < 0) tempValue = 0;
 
                             // store this value, even if it's 0, in the thingy
                             materialPrices[typeID] = tempValue;
@@ -470,7 +475,7 @@ namespace HeavyDuck.Eve.AssetManager
         private static string FormatMaterialValue(double value)
         {
             if (value == 0)
-                return "?";
+                return "<small class=\"error\">?</small>";
             else
                 return "<small class=\"g\">ISK</small> " + FormatDouble1(value);
         }
