@@ -211,12 +211,8 @@ namespace HeavyDuck.Eve.AssetManager
 
                 if (dialog.ShowDialog(this) == DialogResult.OK)
                 {
-                    // create the database only if it does not already exist!
-                    if (!File.Exists(AssetCache.LocalCachePath)) AssetCache.InitializeDB();
-
                     // process the file
                     AssetCache.ParseAssets(dialog.FileName, "Unknown");
-                    AssetCache.FixLocationIDs();
 
                     // update the count
                     UpdateAssetCount();
@@ -531,26 +527,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void UpdateAssetCount()
         {
-            int total = 0;
-
-            // count the total number of assets in the local db
-            using (SQLiteConnection conn = new SQLiteConnection(AssetCache.ConnectionString))
-            {
-                conn.Open();
-
-                using (SQLiteCommand cmd = conn.CreateCommand())
-                {
-                    try
-                    {
-                        cmd.CommandText = "SELECT count(*) FROM assets";
-                        total = Convert.ToInt32(cmd.ExecuteScalar());
-                    }
-                    catch
-                    {
-                        // pass
-                    }
-                }
-            }
+            int total = AssetCache.GetAssetCount();
 
             // update the label
             if (m_assets != null)
@@ -589,7 +566,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // clear the assets and set our dialog value/max
             m_assets = null;
-            dialog.Update(0, 6);
+            dialog.Update(0, 4);
 
             // make sure our character list is up to date
             dialog.Update("Refreshing character list...");
@@ -638,7 +615,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // init the database
             dialog.Update("Initializing local asset database...");
-            AssetCache.InitializeDB();
+            AssetCache.InitializeDB(true);
             dialog.Advance();
 
             // parse the files
@@ -648,11 +625,6 @@ namespace HeavyDuck.Eve.AssetManager
                 string assetFile = assetFiles[characterName];
                 AssetCache.ParseAssets(assetFile, characterName);
             }
-            dialog.Advance();
-
-            // fix IDs
-            dialog.Update("Back-filling location IDs...");
-            AssetCache.FixLocationIDs();
             dialog.Advance();
         }
 

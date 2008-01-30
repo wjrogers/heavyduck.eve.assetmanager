@@ -16,25 +16,35 @@ namespace HeavyDuck.Eve.AssetManager
         private static readonly string m_localCachePath = Path.Combine(Program.DataPath, "assets.db");
         private static readonly string m_connectionString = "Data Source=" + m_localCachePath;
 
-        public static void InitializeDB()
+        static AssetCache()
+        {
+            // initialize the database when this class is first accessed
+            InitializeDB(false);
+        }
+
+        /// <summary>
+        /// Initializes the local asset cache by creating the asset table.
+        /// </summary>
+        /// <param name="deleteExisting">If true, any existing local cache will be deleted first.</param>
+        public static void InitializeDB(bool deleteExisting)
         {
             SQLiteConnection conn = null;
             SQLiteCommand cmd = null;
             StringBuilder sql;
 
             // delete any existing file
-            if (File.Exists(LocalCachePath)) File.Delete(LocalCachePath);
+            if (deleteExisting && File.Exists(m_localCachePath)) File.Delete(m_localCachePath);
            
             // let's connect
             try
             {
                 // connect to our brand new database
-                conn = new SQLiteConnection(ConnectionString);
+                conn = new SQLiteConnection(m_connectionString);
                 conn.Open();
 
                 // let's build up a create table statement
                 sql = new StringBuilder();
-                sql.Append("CREATE TABLE assets (");
+                sql.Append("CREATE TABLE IF NOT EXISTS assets (");
                 sql.Append("itemID INTEGER PRIMARY KEY,");
                 sql.Append("characterName STRING,");
                 sql.Append("locationID INTEGER,");
@@ -56,13 +66,40 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
+        // gets the number of assets in the local cache
+        public static int GetAssetCount()
+        {
+            int total = 0;
+
+            // count the total number of assets in the local db
+            using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
+            {
+                conn.Open();
+
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    try
+                    {
+                        cmd.CommandText = "SELECT count(*) FROM assets";
+                        total = Convert.ToInt32(cmd.ExecuteScalar());
+                    }
+                    catch
+                    {
+                        // pass
+                    }
+                }
+            }
+
+            return total;
+        }
+
         public static DataTable GetAssetTable(IList<WhereClause> clauses)
         {
             StringBuilder sql;
             DataTable table = new DataTable("Assets");
 
             // connect to our lovely database
-            using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
+            using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
             {
                 conn.Open();
 
@@ -150,83 +187,61 @@ namespace HeavyDuck.Eve.AssetManager
             return table;
         }
 
-        public static void FixLocationIDs()
+        public static void ParseAssets(string filePath, string characterName)
         {
             SQLiteConnection conn = null;
             SQLiteTransaction trans = null;
-            int affected, runs;
 
             try
             {
-                conn = new SQLiteConnection(ConnectionString);
+                // create and open the connection
+                conn = new SQLiteConnection(m_connectionString);
                 conn.Open();
+
+                // start the transaction
                 trans = conn.BeginTransaction();
 
                 using (SQLiteCommand cmd = conn.CreateCommand())
                 {
+                    // create the insertion command
+                    cmd.CommandText = "INSERT INTO assets (itemID, characterName, locationID, typeID, quantity, flag, singleton, containerID) VALUES (@itemID, @characterName, @locationID, @typeID, @quantity, @flag, @singleton, @containerID)";
+                    cmd.Parameters.Add("@itemID", DbType.Int64);
+                    cmd.Parameters.AddWithValue("@characterName", characterName);
+                    cmd.Parameters.Add("@locationID", DbType.Int64);
+                    cmd.Parameters.Add("@typeID", DbType.Int32);
+                    cmd.Parameters.Add("@quantity", DbType.Int32);
+                    cmd.Parameters.Add("@flag", DbType.Int32);
+                    cmd.Parameters.Add("@singleton", DbType.Boolean);
+                    cmd.Parameters.Add("@containerID", DbType.Int64);
+
+                    // parse the asset XML (recursive madness here)
+                    using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read))
+                    {
+                        XPathDocument doc = new XPathDocument(fs);
+                        XPathNavigator nav = doc.CreateNavigator();
+                        XPathNodeIterator iter = nav.Select("/eveapi/result/rowset/row");
+
+                        while (iter.MoveNext())
+                        {
+                            ProcessNode(iter.Current, cmd, null);
+                        }
+                    }
+                }
+
+                // back-fill location IDs from container locationIDs
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    int affected = int.MaxValue;
+                    int runs = 0;
+
+                    // prepare command text
                     cmd.CommandText = "UPDATE assets SET locationID = (SELECT locationID FROM assets a WHERE a.itemID = assets.containerID) WHERE locationID IS NULL";
-                    affected = 1;
-                    runs = 0;
 
                     // keep running this query until it has no effect (all locationIDs are populated) or we hit the limit
                     while (affected > 0 && runs < MAX_FIX_ID_RUNS)
                     {
                         affected = cmd.ExecuteNonQuery();
                         runs++;
-                    }
-                }
-
-                // commit
-                trans.Commit();
-            }
-            catch
-            {
-                trans.Rollback();
-                throw;
-            }
-            finally
-            {
-                if (trans != null) trans.Dispose();
-                if (conn != null) conn.Dispose();
-            }
-        }
-
-        public static void ParseAssets(string filePath, string characterName)
-        {
-            SQLiteConnection conn = null;
-            SQLiteCommand cmd = null;
-            SQLiteTransaction trans = null;
-
-            try
-            {
-                // create and open the connection
-                conn = new SQLiteConnection(ConnectionString);
-                conn.Open();
-
-                // start the transaction
-                trans = conn.BeginTransaction();
-
-                // create the insertion command
-                cmd = new SQLiteCommand("INSERT INTO assets (itemID, characterName, locationID, typeID, quantity, flag, singleton, containerID) VALUES (@itemID, @characterName, @locationID, @typeID, @quantity, @flag, @singleton, @containerID)", conn);
-                cmd.Parameters.Add("@itemID", DbType.Int64);
-                cmd.Parameters.AddWithValue("@characterName", characterName);
-                cmd.Parameters.Add("@locationID", DbType.Int64);
-                cmd.Parameters.Add("@typeID", DbType.Int32);
-                cmd.Parameters.Add("@quantity", DbType.Int32);
-                cmd.Parameters.Add("@flag", DbType.Int32);
-                cmd.Parameters.Add("@singleton", DbType.Boolean);
-                cmd.Parameters.Add("@containerID", DbType.Int64);
-
-                // parse the asset XML (recursive madness here)
-                using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read))
-                {
-                    XPathDocument doc = new XPathDocument(fs);
-                    XPathNavigator nav = doc.CreateNavigator();
-                    XPathNodeIterator iter = nav.Select("/eveapi/result/rowset/row");
-
-                    while (iter.MoveNext())
-                    {
-                        ProcessNode(iter.Current, cmd, null);
                     }
                 }
 
@@ -240,7 +255,6 @@ namespace HeavyDuck.Eve.AssetManager
             }
             finally
             {
-                if (cmd != null) cmd.Dispose();
                 if (trans != null) trans.Dispose();
                 if (conn != null) conn.Dispose();
             }
@@ -282,16 +296,6 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 ProcessNode(contentIter.Current, insertCmd, itemID);
             }
-        }
-
-        public static string LocalCachePath
-        {
-            get { return m_localCachePath; }
-        }
-
-        public static string ConnectionString
-        {
-            get { return m_connectionString; }
         }
     }
 
