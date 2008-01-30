@@ -14,6 +14,7 @@ namespace HeavyDuck.Eve.AssetManager
         private const int MAX_FIX_ID_RUNS = 20;
 
         private static readonly string m_localCachePath = Path.Combine(Program.DataPath, "assets.db");
+        private static readonly string m_outpostDatabasePath = Path.Combine(Program.DataPath, "outposts.db");
         private static readonly string m_connectionString = "Data Source=" + m_localCachePath;
 
         static AssetCache()
@@ -97,6 +98,22 @@ namespace HeavyDuck.Eve.AssetManager
         {
             StringBuilder sql;
             DataTable table = new DataTable("Assets");
+            bool gotOutposts;
+
+            // try to grab some data on the outposts out there in never-never land
+            try
+            {
+                // query the api and parse to a sqlite db
+                UpdateOutpostDatabase();
+
+                // we can use the outposts table now
+                gotOutposts = true;
+            }
+            catch
+            {
+                // nope, we screwed up, can't use that table
+                gotOutposts = false;
+            }
 
             // connect to our lovely database
             using (SQLiteConnection conn = new SQLiteConnection(m_connectionString))
@@ -111,10 +128,25 @@ namespace HeavyDuck.Eve.AssetManager
                     cmd.ExecuteNonQuery();
                 }
 
+                // attach the outposts database
+                if (gotOutposts)
+                {
+                    using (SQLiteCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "ATTACH DATABASE @dbpath AS op";
+                        cmd.Parameters.AddWithValue("@dbpath", m_outpostDatabasePath);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
                 // build our select statement
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, l.itemName AS locationName ");
+                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory ");
+                if (gotOutposts)
+                    sql.Append(", COALESCE(l.itemName, o.stationName) AS locationName ");
+                else
+                    sql.Append(", l.itemName AS locationName ");
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
@@ -122,6 +154,8 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("JOIN eve.invCategories cat ON cat.categoryID = g.categoryID ");
                 sql.Append("LEFT JOIN eve.invFlags f ON f.flagID = a.flag ");
                 sql.Append("LEFT JOIN eve.eveNames l ON l.itemID = a.locationID ");
+                if (gotOutposts)
+                    sql.Append("LEFT JOIN op.outposts o ON o.stationID = a.locationID ");
                 sql.Append("LEFT JOIN assets c ON c.itemID = a.containerID ");
                 sql.Append("LEFT JOIN eve.invTypes ct ON ct.typeID = c.typeID ");
                 sql.Append("LEFT JOIN eve.invGroups cg ON cg.groupID = ct.groupID ");
@@ -295,6 +329,107 @@ namespace HeavyDuck.Eve.AssetManager
             while (contentIter.MoveNext())
             {
                 ProcessNode(contentIter.Current, insertCmd, itemID);
+            }
+        }
+
+        private static void UpdateOutpostDatabase()
+        {
+            Dictionary<string, string> parameters;
+            SQLiteConnection conn = null;
+            SQLiteTransaction trans = null;
+            StringBuilder sql;
+            string xmlPath;
+
+            // create our single uninteresting parameter
+            parameters = new Dictionary<string, string>();
+            parameters["version"] = "2";
+
+            // query the api
+            xmlPath = EveApiHelper.QueryApi("/eve/ConquerableStationList.xml.aspx", parameters);
+
+            // attempt to see whether we need to do anything at all
+            FileInfo xmlInfo = new FileInfo(xmlPath);
+            FileInfo outpostInfo = new FileInfo(m_outpostDatabasePath);
+            if (outpostInfo.Exists && outpostInfo.LastWriteTime >= xmlInfo.LastWriteTime) return;
+
+            // connect to the outpost db
+            try
+            {
+                conn = new SQLiteConnection("Data Source=" + m_outpostDatabasePath);
+                conn.Open();
+                trans = conn.BeginTransaction();
+
+                // we need to create the table if it does not exist
+                sql = new StringBuilder();
+                sql.Append("CREATE TABLE IF NOT EXISTS outposts (");
+                sql.Append("stationID INTEGER PRIMARY KEY,");
+                sql.Append("stationName TEXT,");
+                sql.Append("stationTypeID INTEGER,");
+                sql.Append("solarSystemID INTEGER,");
+                sql.Append("corporationID INTEGER,");
+                sql.Append("corporationName TEXT,");
+                sql.Append("current BOOL");
+                sql.Append(")");
+
+                // rah rah go table
+                using (SQLiteCommand cmd = conn.CreateCommand())
+                {
+                    // create it if it's not there
+                    cmd.CommandText = sql.ToString();
+                    cmd.ExecuteNonQuery();
+
+                    // set all the current flags to false
+                    cmd.CommandText = "UPDATE outposts SET current = 0";
+                    cmd.ExecuteNonQuery();
+                }
+
+                // parse it
+                using (FileStream input = File.Open(xmlPath, FileMode.Open, FileAccess.Read))
+                {
+                    XPathDocument doc = new XPathDocument(input);
+                    XPathNavigator nav = doc.CreateNavigator();
+                    XPathNodeIterator iter = nav.Select("/eveapi/result/rowset[@name='outposts']/row");
+
+                    using (SQLiteCommand cmd = conn.CreateCommand())
+                    {
+                        // create the command we will use to insert rows
+                        cmd.CommandText = "INSERT OR REPLACE INTO outposts (stationID, stationName, stationTypeID, solarSystemID, corporationID, corporationName, current) VALUES (@stationID, @stationName, @stationTypeID, @solarSystemID, @corporationID, @corporationName, 1)";
+                        cmd.Parameters.Add("@stationID", DbType.Int64);
+                        cmd.Parameters.Add("@stationName", DbType.String);
+                        cmd.Parameters.Add("@stationTypeID", DbType.Int64);
+                        cmd.Parameters.Add("@solarSystemID", DbType.Int64);
+                        cmd.Parameters.Add("@corporationID", DbType.Int64);
+                        cmd.Parameters.Add("@corporationName", DbType.String);
+
+                        // loop through all the nodes
+                        while (iter.MoveNext())
+                        {
+                            // set the parameters
+                            cmd.Parameters["@stationID"].Value = iter.Current.SelectSingleNode("@stationID").ValueAsLong;
+                            cmd.Parameters["@stationName"].Value = iter.Current.SelectSingleNode("@stationName").Value;
+                            cmd.Parameters["@stationTypeID"].Value = iter.Current.SelectSingleNode("@stationTypeID").ValueAsLong;
+                            cmd.Parameters["@solarSystemID"].Value = iter.Current.SelectSingleNode("@solarSystemID").ValueAsLong;
+                            cmd.Parameters["@corporationID"].Value = iter.Current.SelectSingleNode("@corporationID").ValueAsLong;
+                            cmd.Parameters["@corporationName"].Value = iter.Current.SelectSingleNode("@corporationName").Value;
+
+                            // execute the damn thing
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+
+                // commit transaction
+                trans.Commit();
+            }
+            catch
+            {
+                trans.Rollback();
+                throw;
+            }
+            finally
+            {
+                if (trans != null) trans.Dispose();
+                if (conn != null) conn.Dispose();
             }
         }
     }
