@@ -570,6 +570,8 @@ namespace HeavyDuck.Eve.AssetManager
         private void RefreshAssets(IProgressDialog dialog)
         {
             Dictionary<string, string> assetFiles = new Dictionary<string, string>();
+            List<string> outdatedNames = new List<string>();
+            CachedResult result;
 
             // clear the assets and set our dialog value/max
             m_assets = null;
@@ -594,15 +596,45 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // fetch character assets
                 if (!assetFiles.ContainsKey(characterName))
-                    assetFiles[characterName] = EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID);
+                {
+                    result = EveApiHelper.GetCharacterAssetList(userID, apiKey, characterID);
+                    switch (result.State)
+                    {
+                        case CacheState.Cached:
+                            assetFiles[characterName] = result.Path;
+                            break;
+                        case CacheState.CachedOutOfDate:
+                            assetFiles[characterName] = result.Path;
+                            outdatedNames.Add(characterName);
+                            break;
+                        default:
+                            throw new ApplicationException("Failed to retrieve asset data for " + characterName, result.Exception);
+                    }
+                }
                 else
+                {
                     System.Diagnostics.Debug.WriteLine("Odd, got two records for the same character name... " + characterName);
+                }
 
                 // fetch corporation assets?
                 try
                 {
                     if (queryCorp && !assetFiles.ContainsKey(corporationName))
-                        assetFiles[corporationName] = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
+                    {
+                        result = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
+                        switch (result.State)
+                        {
+                            case CacheState.Cached:
+                                assetFiles[corporationName] = result.Path;
+                                break;
+                            case CacheState.CachedOutOfDate:
+                                assetFiles[corporationName] = result.Path;
+                                outdatedNames.Add(corporationName);
+                                break;
+                            default:
+                                throw new ApplicationException("Failed to retrieve asset data for " + corporationName, result.Exception);
+                        }
+                    }
                 }
                 catch (EveApiException ex)
                 {
@@ -619,6 +651,32 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
             dialog.Advance();
+
+            // inform the user about any files that could not be refreshed
+            if (outdatedNames.Count > 0)
+            {
+                StringBuilder message = new StringBuilder();
+
+                // prepare the semi-friendly message
+                message.Append("An error occurred while refreshing assets for the characters and/or\ncorporations listed below. Cached data will be used instead. Your assets might\nbe out of date.\n");
+                foreach (string name in outdatedNames)
+                {
+                    message.Append("\n");
+                    message.Append(name);
+                }
+
+                // prepare the code to be invoked
+                MethodInvoker code = delegate()
+                {
+                    MessageBox.Show(this, message.ToString(), "Using Cached Assets", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                };
+
+                // invoke it
+                if (this.InvokeRequired)
+                    this.Invoke(code);
+                else
+                    code();
+            }
 
             // init the database
             dialog.Update("Initializing local asset database...");

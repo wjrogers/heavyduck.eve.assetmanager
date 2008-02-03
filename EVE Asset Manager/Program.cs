@@ -120,6 +120,7 @@ namespace HeavyDuck.Eve.AssetManager
             string apiKey;
             int userID;
             DataTable tempChars;
+            CachedResult result;
 
             // this is where we're gonna put the characters while we query and read XML and stuff
             tempChars = m_characters.Clone();
@@ -131,14 +132,15 @@ namespace HeavyDuck.Eve.AssetManager
                 apiKey = row["apiKey"].ToString();
 
                 // query the API
-                try
+                result = EveApiHelper.GetCharacters(userID, apiKey);
+                if (result.State == CacheState.Uncached)
                 {
-                    path = EveApiHelper.GetCharacters(userID, apiKey);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Failed to fetch characters for UserID " + userID.ToString() + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Failed to fetch characters for UserID " + userID.ToString() + result.Exception == null ? "" : "\n\n" + result.Exception.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     continue;
+                }
+                else
+                {
+                    path = result.Path;
                 }
 
                 // parse the XML
