@@ -64,7 +64,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // create a view with the sort we need
-            view = new DataView(data, null, "characterName, locationName, containerName, slotOrder, typeName", DataViewRowState.CurrentRows);
+            view = new DataView(data, null, "containerName, characterName, locationName, slotOrder, typeName", DataViewRowState.CurrentRows);
 
             // open the output file
             using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
@@ -106,7 +106,7 @@ namespace HeavyDuck.Eve.AssetManager
                         writer.WriteAttributeString("class", "group");
                         writer.WriteStartElement("th");
                         writer.WriteAttributeString("colspan", "3");
-                        writer.WriteRaw(string.Format("{0}'s <span class=\"l\">{1}</span> {2} in {3}", view[i]["characterName"], ship.Substring(0, ship.LastIndexOf('#') - 1), ship.Substring(ship.LastIndexOf('#')), location));
+                        writer.WriteRaw(string.Format("<span class=\"l\">{1}</span> {2} / {0} / {3}", view[i]["characterName"], ship.Substring(0, ship.LastIndexOf('#') - 1), ship.Substring(ship.LastIndexOf('#')), location));
                         writer.WriteEndElement(); // th
                         writer.WriteEndElement(); // tr
                     }
