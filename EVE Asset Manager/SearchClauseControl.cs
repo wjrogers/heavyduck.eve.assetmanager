@@ -49,6 +49,12 @@ namespace HeavyDuck.Eve.AssetManager
 
             // quantity
             m_fields.Add(new SearchField("Count", "a.quantity", SearchField.SearchFieldType.Number));
+
+            // baseprice
+            m_fields.Add(new SearchField("Base Price", "t.basePrice", SearchField.SearchFieldType.Number));
+
+            // meta level
+            m_fields.Add(new SearchField("Meta Level", "metaLevel", SearchField.SearchFieldType.Number));
         }
 
         private static DataTable GetFieldOptions(string sql)

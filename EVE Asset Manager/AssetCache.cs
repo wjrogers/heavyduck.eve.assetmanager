@@ -139,14 +139,16 @@ namespace HeavyDuck.Eve.AssetManager
                     }
                 }
 
-                // build our select statement
+                // build our select statement, select clause
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory ");
+                sql.Append("a.*, t.typeName, t.basePrice, g.groupName, cat.categoryName, f.flagName, ct.typeName || ' #' || c.itemID AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, mlattr.valueInt AS metaLevel ");
                 if (gotOutposts)
                     sql.Append(", COALESCE(l.itemName, o.stationName) AS locationName ");
                 else
                     sql.Append(", l.itemName AS locationName ");
+
+                // from clause
                 sql.Append("FROM ");
                 sql.Append("assets a ");
                 sql.Append("JOIN eve.invTypes t ON t.typeID = a.typeID ");
@@ -156,6 +158,9 @@ namespace HeavyDuck.Eve.AssetManager
                 sql.Append("LEFT JOIN eve.eveNames l ON l.itemID = a.locationID ");
                 if (gotOutposts)
                     sql.Append("LEFT JOIN op.outposts o ON o.stationID = a.locationID ");
+                sql.Append("LEFT JOIN dgmTypeAttributes mlattr ON mlattr.typeID = a.typeID AND mlattr.attributeID = 633 ");
+
+                // these joins add in the info on the object's container
                 sql.Append("LEFT JOIN assets c ON c.itemID = a.containerID ");
                 sql.Append("LEFT JOIN eve.invTypes ct ON ct.typeID = c.typeID ");
                 sql.Append("LEFT JOIN eve.invGroups cg ON cg.groupID = ct.groupID ");

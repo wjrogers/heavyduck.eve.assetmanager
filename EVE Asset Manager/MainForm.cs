@@ -67,8 +67,15 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "locationName", "Location");
             GridHelper.AddColumn(grid, "containerName", "Container");
             GridHelper.AddColumn(grid, "flagName", "Flag");
+            GridHelper.AddColumn(grid, "basePrice", "Base Price");
+            GridHelper.AddColumn(grid, "metaLevel", "Meta Level");
             GridHelper.AddColumn(grid, "itemID", "ID");
-            grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            grid.Columns["quantity"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["basePrice"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            grid.Columns["basePrice"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["metaLevel"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            grid.Columns["itemID"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
             // the label for counting assets
