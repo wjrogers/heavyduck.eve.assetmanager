@@ -343,6 +343,7 @@ namespace HeavyDuck.Eve.AssetManager
             SQLiteConnection conn = null;
             SQLiteTransaction trans = null;
             StringBuilder sql;
+            CachedResult result;
             string xmlPath;
 
             // create our single uninteresting parameter
@@ -350,7 +351,11 @@ namespace HeavyDuck.Eve.AssetManager
             parameters["version"] = "2";
 
             // query the api
-            xmlPath = EveApiHelper.QueryApi("/eve/ConquerableStationList.xml.aspx", parameters);
+            result = EveApiHelper.QueryApi("/eve/ConquerableStationList.xml.aspx", parameters);
+            if (result.State == CacheState.Uncached)
+                throw new ApplicationException("Failed to retrieve outpost list", result.Exception);
+            else
+                xmlPath = result.Path;
 
             // attempt to see whether we need to do anything at all
             FileInfo xmlInfo = new FileInfo(xmlPath);
