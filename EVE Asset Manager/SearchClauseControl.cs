@@ -286,6 +286,11 @@ namespace HeavyDuck.Eve.AssetManager
             set { remove_button.Visible = value; }
         }
 
+        public static SearchField GetField(string fieldName)
+        {
+            return m_fields.Find(delegate(SearchField field) { return field.Name == fieldName; });
+        }
+
         public enum ComparisonOp
         {
             Like,
