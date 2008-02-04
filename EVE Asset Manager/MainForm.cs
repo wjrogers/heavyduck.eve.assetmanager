@@ -149,7 +149,6 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void ToolStripSearch_Click(object sender, EventArgs e)
         {
-            DataTable fields;
             SearchClauseControl control;
             ToolStripItem item = sender as ToolStripItem;
             if (item == null) return;
@@ -159,25 +158,16 @@ namespace HeavyDuck.Eve.AssetManager
 
             try
             {
-                // load from the databaser
-                fields = DataStore.GetSavedSearchParameters(id);
-
                 // clear the list, then add in each search parameter
                 ClearSearchControls();
-                foreach (DataRow row in fields.Rows)
+                ProcessSavedSearch(id, delegate(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value)
                 {
-                    // read the values from the row
-                    string fieldName = row["fieldName"].ToString();
-                    BooleanOp booleanOp = (BooleanOp)Enum.Parse(typeof(BooleanOp), row["booleanOp"].ToString());
-                    SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
-                    string value = row["value"].ToString();
-
                     // add the parameter
                     control = AddSearchControl(fieldName);
                     control.SelectedBooleanOp = booleanOp;
                     control.SelectedComparisonOp = comparisonOp;
                     control.ValueText = value;
-                }
+                });
 
                 // run the query
                 RunQuery();
@@ -305,41 +295,38 @@ namespace HeavyDuck.Eve.AssetManager
                 if (value == null) continue;
 
                 // contruct the basic format of the clause
-                switch (op)
-                {
-                    case SearchClauseControl.ComparisonOp.Equals:
-                        format = "{0} = {1}";
-                        break;
-                    case SearchClauseControl.ComparisonOp.NotEquals:
-                        format = "{0} <> {1}";
-                        break;
-                    case SearchClauseControl.ComparisonOp.Like:
-                        format = "{0} LIKE '%' || {1} || '%'";
-                        break;
-                    case SearchClauseControl.ComparisonOp.NotLike:
-                        format = "{0} NOT LIKE '%' || {1} || '%'";
-                        break;
-                    case SearchClauseControl.ComparisonOp.LessThan:
-                        format = "{0} < {1}";
-                        break;
-                    case SearchClauseControl.ComparisonOp.LessThanOrEqual:
-                        format = "{0} <= {1}";
-                        break;
-                    case SearchClauseControl.ComparisonOp.GreaterThan:
-                        format = "{0} > {1}";
-                        break;
-                    case SearchClauseControl.ComparisonOp.GreaterThanOrEqual:
-                        format = "{0} >= {1}";
-                        break;
-                    default:
-                        throw new InvalidOperationException("Don't know how to construct where clause for ComparisonOp" + op);
-                }
+                format = GetComparisonOpFormat(op);
 
                 // fill it
                 clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), booleanOp, parameterName, value));
             }
 
             return clauses;
+        }
+
+        private static string GetComparisonOpFormat(SearchClauseControl.ComparisonOp op)
+        {
+            switch (op)
+            {
+                case SearchClauseControl.ComparisonOp.Equals:
+                    return "{0} = {1}";
+                case SearchClauseControl.ComparisonOp.NotEquals:
+                    return "{0} <> {1}";
+                case SearchClauseControl.ComparisonOp.Like:
+                    return "{0} LIKE '%' || {1} || '%'";
+                case SearchClauseControl.ComparisonOp.NotLike:
+                    return "{0} NOT LIKE '%' || {1} || '%'";
+                case SearchClauseControl.ComparisonOp.LessThan:
+                    return "{0} < {1}";
+                case SearchClauseControl.ComparisonOp.LessThanOrEqual:
+                    return "{0} <= {1}";
+                case SearchClauseControl.ComparisonOp.GreaterThan:
+                    return "{0} > {1}";
+                case SearchClauseControl.ComparisonOp.GreaterThanOrEqual:
+                    return "{0} >= {1}";
+                default:
+                    throw new InvalidOperationException("Don't know how to construct where clause for ComparisonOp" + op);
+            }
         }
 
         private void InitializeSearchControls()
@@ -481,6 +468,29 @@ namespace HeavyDuck.Eve.AssetManager
             button.DropDown = menu;
         }
 
+        private delegate void ProcessSavedSearchCallback(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value);
+
+        private void ProcessSavedSearch(long searchID, ProcessSavedSearchCallback callback)
+        {
+            DataTable fields;
+
+            // load from the databaser
+            fields = DataStore.GetSavedSearchParameters(searchID);
+
+            // read in each row then call the callback
+            foreach (DataRow row in fields.Rows)
+            {
+                // read the values from the row
+                string fieldName = row["fieldName"].ToString();
+                BooleanOp booleanOp = (BooleanOp)Enum.Parse(typeof(BooleanOp), row["booleanOp"].ToString());
+                SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
+                string value = row["value"].ToString();
+
+                // call it
+                callback(fieldName, booleanOp, comparisonOp, value);
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -491,15 +501,19 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable assets;
             ProgressDialog dialog;
             ReportOptionsDialog options;
+            ReportOptionsDialog.AssetSourceType sourceType;
+            int savedSearchID = -1;
 
             // ask the user some stuff
             options = new ReportOptionsDialog();
             options.ReportTitle = defaultTitle;
             if (options.ShowDialog(this) == DialogResult.Cancel) return;
+            sourceType = options.AssetSource;
+            if (sourceType == ReportOptionsDialog.AssetSourceType.SavedSearch)
+                savedSearchID = options.SavedSearchID;
 
             // create clauses
             clauses = new List<WhereClause>();
-            if (options.UseCurrentFields) clauses.AddRange(GetWhereClauses());
 
             try
             {
@@ -510,7 +524,28 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // create our clauses and get assets
                     p.Update("Querying assets...");
-                    assets = AssetCache.GetAssetTable(clauses);
+                    switch (sourceType)
+                    {
+                        case ReportOptionsDialog.AssetSourceType.All:
+                            assets = AssetCache.GetAssetTable(clauses);
+                            break;
+                        case ReportOptionsDialog.AssetSourceType.Current:
+                            if (m_assets == null) throw new ApplicationException("There are no current search results to use.");
+                            assets = m_assets;
+                            break;
+                        case ReportOptionsDialog.AssetSourceType.SavedSearch:
+                            ProcessSavedSearch(savedSearchID, delegate(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value)
+                            {
+                                SearchClauseControl.SearchField field = SearchClauseControl.GetField(fieldName);
+                                string format = GetComparisonOpFormat(comparisonOp);
+                                string parameterName = field.GetParameterName();
+                                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), booleanOp, parameterName, value));
+                            });
+                            assets = AssetCache.GetAssetTable(clauses);
+                            break;
+                        default:
+                            throw new ApplicationException("Don't know how to get assets for source type " + sourceType.ToString());
+                    }
                     p.Advance();
 
                     // generate report
