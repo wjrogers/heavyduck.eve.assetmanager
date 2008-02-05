@@ -28,9 +28,9 @@ namespace HeavyDuck.Eve.AssetManager
         /// </summary>
         private void InitializeComponent()
         {
-            this.grid_keys = new System.Windows.Forms.DataGridView();
+            this.grid_keys = new HeavyDuck.Eve.AssetManager.DoubleBufferedDataGridView();
             this.refresh_button = new System.Windows.Forms.Button();
-            this.grid_characters = new System.Windows.Forms.DataGridView();
+            this.grid_characters = new HeavyDuck.Eve.AssetManager.DoubleBufferedDataGridView();
             this.done_button = new System.Windows.Forms.Button();
             this.remove_button = new System.Windows.Forms.Button();
             this.add_button = new System.Windows.Forms.Button();
@@ -123,9 +123,9 @@ namespace HeavyDuck.Eve.AssetManager
 
         #endregion
 
-        private System.Windows.Forms.DataGridView grid_keys;
+        private HeavyDuck.Eve.AssetManager.DoubleBufferedDataGridView grid_keys;
         private System.Windows.Forms.Button refresh_button;
-        private System.Windows.Forms.DataGridView grid_characters;
+        private HeavyDuck.Eve.AssetManager.DoubleBufferedDataGridView grid_characters;
         private System.Windows.Forms.Button done_button;
         private System.Windows.Forms.Button remove_button;
         private System.Windows.Forms.Button add_button;
