@@ -14,6 +14,90 @@ namespace HeavyDuck.Eve.AssetManager
     internal static class Reporter
     {
         private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1 { margin: 0; } p { margin: 0 0 8px 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } .group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } .subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
+        private const string SUBGROUP_YELLOW_CSS = ".subgroup th { background-color: #FFC; }";
+        private const string SUBGROUP_GRAY_CSS = ".subgroup th { color: white; background-color: #666; }";
+        private const string QUESTION_HTML = "<small class=\"error\">?</small>";
+        private const string ISK_HTML = "<small class=\"g\">ISK</small> ";
+
+        public static void GenerateAssetsByLocationReport(DataTable data, string title, string outputPath)
+        {
+            DataView view;
+            XmlWriter writer;
+
+            // group by something
+            data = TableHelper.GroupBy(data, "locationName, categoryName, typeName, basePrice", "quantity");
+
+            // create a view with the sort we need
+            view = new DataView(data, null, "locationName, categoryName, typeName", DataViewRowState.CurrentRows);
+
+            // open the output file
+            using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
+            {
+                // configure writer
+                writer = CreateWriter(output);
+
+                // start the document
+                WriteToBody(writer, title, SUBGROUP_GRAY_CSS);
+                WritePriceDisclaimerBasePrice(writer);
+                writer.WriteStartElement("table");
+
+                // grouping variables
+                string currentLocation = null;
+                string currentCategory = null;
+
+                // loop through the rows
+                foreach (DataRowView row in view)
+                {
+                    // read some values
+                    string location = row["locationName"].ToString();
+                    string category = row["categoryName"].ToString();
+                    long? basePrice = null;
+                    long quantity = Convert.ToInt64(row["quantity"]);
+
+                    // make blank locations nicer, check nullness of price
+                    if (string.IsNullOrEmpty(location)) location = "???";
+                    if (!(row["basePrice"] is DBNull)) basePrice = Convert.ToInt64(row["basePrice"]);
+
+                    // group
+                    if (location != currentLocation)
+                    {
+                        currentLocation = location;
+                        currentCategory = null;
+
+                        // write the group row
+                        writer.WriteStartElement("tr");
+                        writer.WriteAttributeString("class", "group");
+                        writer.WriteStartElement("th");
+                        writer.WriteAttributeString("colspan", "3");
+                        writer.WriteString(location);
+                        writer.WriteEndElement(); // th
+                        writer.WriteEndElement(); // tr
+                    }
+
+                    // sub-group
+                    if (category != currentCategory)
+                    {
+                        currentCategory = category;
+
+                        WriteSubGroupRow(writer, category, 3);
+                    }
+
+                    // the actual thingy row
+                    writer.WriteStartElement("tr");
+                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
+                    writer.WriteElementString("td", row["typeName"].ToString());
+                    if (basePrice.HasValue)
+                        WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatInt64(quantity * basePrice.Value));
+                    else
+                        WriteElementRawWithClass(writer, "td", "r", QUESTION_HTML);
+                    writer.WriteEndElement();
+                }
+
+                // finish the document
+                writer.WriteEndDocument();
+                writer.Flush();
+            }
+        }
 
         public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
         {
@@ -180,7 +264,7 @@ namespace HeavyDuck.Eve.AssetManager
                 writer = CreateWriter(output);
 
                 // start writing
-                WriteToBody(writer, title, ".subgroup th { background-color: #FFC; }");
+                WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
                 WritePriceDisclaimerEveCentral(writer);
                 writer.WriteStartElement("table");
 
@@ -383,7 +467,7 @@ namespace HeavyDuck.Eve.AssetManager
                 writer = CreateWriter(output);
 
                 // start writing
-                WriteToBody(writer, title, ".subgroup th { color: white; background-color: #666; } .low td { color: #600; background-color: #FEC; } .empty td { background-color: #FCC; }");
+                WriteToBody(writer, title, SUBGROUP_GRAY_CSS, ".low td { color: #600; background-color: #FEC; } .empty td { background-color: #FCC; }");
                 writer.WriteStartElement("table");
 
                 // grouping info
@@ -676,9 +760,9 @@ namespace HeavyDuck.Eve.AssetManager
         private static string FormatMaterialValue(double value)
         {
             if (value == 0)
-                return "<small class=\"error\">?</small>";
+                return QUESTION_HTML;
             else
-                return "<small class=\"g\">ISK</small> " + FormatDouble1(value);
+                return ISK_HTML + FormatDouble1(value);
         }
 
         #endregion

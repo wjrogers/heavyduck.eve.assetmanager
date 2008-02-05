@@ -39,6 +39,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
+            menu_reports_location.Click += new EventHandler(menu_reports_location_Click);
             menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
             menu_reports_material.Click += new EventHandler(menu_reports_material_Click);
             menu_reports_pos.Click += new EventHandler(menu_reports_pos_Click);
@@ -152,6 +153,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void ToolStripSearch_Click(object sender, EventArgs e)
         {
+            DataTable fields;
             SearchClauseControl control;
             ToolStripItem item = sender as ToolStripItem;
             if (item == null) return;
@@ -161,16 +163,25 @@ namespace HeavyDuck.Eve.AssetManager
 
             try
             {
+                // get the table
+                fields = DataStore.GetSavedSearchParameters(id);
+
                 // clear the list, then add in each search parameter
                 ClearSearchControls();
-                ProcessSavedSearch(id, delegate(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value)
+                foreach (DataRow row in fields.Rows)
                 {
-                    // add the parameter
+                    // read the values from the row
+                    string fieldName = row["fieldName"].ToString();
+                    BooleanOp booleanOp = (BooleanOp)Enum.Parse(typeof(BooleanOp), row["booleanOp"].ToString());
+                    SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
+                    string value = row["value"].ToString();
+
+                    // create the control
                     control = AddSearchControl(fieldName);
                     control.SelectedBooleanOp = booleanOp;
                     control.SelectedComparisonOp = comparisonOp;
-                    control.ValueText = value;
-                });
+                    control.Value = value;
+                }
 
                 // run the query
                 RunQuery();
@@ -229,6 +240,11 @@ namespace HeavyDuck.Eve.AssetManager
             this.Close();
         }
 
+        private void menu_reports_location_Click(object sender, EventArgs e)
+        {
+            GenerateReport("Assets by Location", Reporter.GenerateAssetsByLocationReport);
+        }
+
         private void menu_reports_loadouts_Click(object sender, EventArgs e)
         {
             GenerateReport("Ship Loadouts", Reporter.GenerateLoadoutReport);
@@ -281,11 +297,11 @@ namespace HeavyDuck.Eve.AssetManager
 
         #region Private Methods - Query Fields
 
-        private List<WhereClause> GetWhereClauses()
+        private List<WhereClause> GetWhereClauses(IEnumerable<SearchClauseControl> searchControls)
         {
             List<WhereClause> clauses = new List<WhereClause>();
 
-            foreach (SearchClauseControl control in m_searchControls)
+            foreach (SearchClauseControl control in searchControls)
             {
                 SearchClauseControl.SearchField field = control.SelectedField;
                 SearchClauseControl.ComparisonOp op = control.SelectedComparisonOp;
@@ -512,16 +528,16 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private delegate void ProcessSavedSearchCallback(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value);
-
-        private void ProcessSavedSearch(long searchID, ProcessSavedSearchCallback callback)
+        private List<WhereClause> GetWhereClausesForSavedSearch(long searchID)
         {
             DataTable fields;
+            List<WhereClause> clauses;
 
             // load from the databaser
             fields = DataStore.GetSavedSearchParameters(searchID);
+            clauses = new List<WhereClause>(fields.Rows.Count);
 
-            // read in each row then call the callback
+            // read in each row
             foreach (DataRow row in fields.Rows)
             {
                 // read the values from the row
@@ -530,9 +546,17 @@ namespace HeavyDuck.Eve.AssetManager
                 SearchClauseControl.ComparisonOp comparisonOp = (SearchClauseControl.ComparisonOp)Enum.Parse(typeof(SearchClauseControl.ComparisonOp), row["comparisonOp"].ToString());
                 string value = row["value"].ToString();
 
-                // call it
-                callback(fieldName, booleanOp, comparisonOp, value);
+                // figure out a few more things
+                SearchClauseControl.SearchField field = SearchClauseControl.GetField(fieldName);
+                string format = GetComparisonOpFormat(comparisonOp);
+                string parameterName = field.GetParameterName();
+
+                // add it to the list
+                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), booleanOp, parameterName, value));
             }
+
+            // return the list
+            return clauses;
         }
 
         #endregion
@@ -578,13 +602,7 @@ namespace HeavyDuck.Eve.AssetManager
                             assets = m_assets;
                             break;
                         case ReportOptionsDialog.AssetSourceType.SavedSearch:
-                            ProcessSavedSearch(savedSearchID, delegate(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value)
-                            {
-                                SearchClauseControl.SearchField field = SearchClauseControl.GetField(fieldName);
-                                string format = GetComparisonOpFormat(comparisonOp);
-                                string parameterName = field.GetParameterName();
-                                clauses.Add(new WhereClause(string.Format(format, field.DbField, parameterName), booleanOp, parameterName, value));
-                            });
+                            clauses.AddRange(GetWhereClausesForSavedSearch(savedSearchID));
                             assets = AssetCache.GetAssetTable(clauses);
                             break;
                         default:
@@ -603,7 +621,14 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (Exception ex)
             {
+                // let the user know we failed
                 ShowException("Failed to generate report:", ex);
+
+                // try to get rid of the partially-written file
+                try { if (File.Exists(options.ReportPath)) File.Delete(options.ReportPath); }
+                catch { /* pass */ }
+
+                // get outta here, she's gonna blow!
                 return;
             }
 
@@ -627,7 +652,7 @@ namespace HeavyDuck.Eve.AssetManager
             ProgressDialog dialog;
 
             // update our internal representation of the search boxes
-            m_clauses = GetWhereClauses();
+            m_clauses = GetWhereClauses(m_searchControls);
 
             // run the query on the asset database again
             try

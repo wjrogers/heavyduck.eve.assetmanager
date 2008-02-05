@@ -208,7 +208,7 @@ namespace HeavyDuck.Eve.AssetManager
                         cmd.Parameters["@booleanOp"].Value = control.SelectedBooleanOp;
                         cmd.Parameters["@fieldName"].Value = control.SelectedField.Name;
                         cmd.Parameters["@comparisonOp"].Value = control.SelectedComparisonOp;
-                        cmd.Parameters["@value"].Value = control.ValueText;
+                        cmd.Parameters["@value"].Value = control.Value;
                         cmd.ExecuteNonQuery();
                     }
                 }
