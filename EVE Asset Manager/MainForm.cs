@@ -39,6 +39,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
+            menu_reports_category.Click += new EventHandler(menu_reports_category_Click);
             menu_reports_location.Click += new EventHandler(menu_reports_location_Click);
             menu_reports_loadouts.Click += new EventHandler(menu_reports_loadouts_Click);
             menu_reports_material.Click += new EventHandler(menu_reports_material_Click);
@@ -238,6 +239,11 @@ namespace HeavyDuck.Eve.AssetManager
         private void menu_file_exit_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void menu_reports_category_Click(object sender, EventArgs e)
+        {
+            GenerateReport("Assets by Category", Reporter.GenerateAssetsByCategoryReport);
         }
 
         private void menu_reports_location_Click(object sender, EventArgs e)
