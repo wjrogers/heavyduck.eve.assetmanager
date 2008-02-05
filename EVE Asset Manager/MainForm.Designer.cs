@@ -37,6 +37,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.menu_file_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_reports_category = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports_location = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports_material = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports_pos = new System.Windows.Forms.ToolStripMenuItem();
@@ -46,7 +47,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_options_keys = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help_about = new System.Windows.Forms.ToolStripMenuItem();
-            this.menu_reports_category = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_file_export = new System.Windows.Forms.ToolStripMenuItem();
             this.menu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -83,6 +84,7 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             this.menu_file.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menu_file_import,
+            this.menu_file_export,
             this.toolStripSeparator1,
             this.menu_file_exit});
             this.menu_file.Name = "menu_file";
@@ -92,18 +94,18 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_file_import
             // 
             this.menu_file_import.Name = "menu_file_import";
-            this.menu_file_import.Size = new System.Drawing.Size(151, 22);
+            this.menu_file_import.Size = new System.Drawing.Size(152, 22);
             this.menu_file_import.Text = "Import XML...";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(148, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
             // 
             // menu_file_exit
             // 
             this.menu_file_exit.Name = "menu_file_exit";
-            this.menu_file_exit.Size = new System.Drawing.Size(151, 22);
+            this.menu_file_exit.Size = new System.Drawing.Size(152, 22);
             this.menu_file_exit.Text = "E&xit";
             // 
             // menu_reports
@@ -117,6 +119,12 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_reports.Name = "menu_reports";
             this.menu_reports.Size = new System.Drawing.Size(57, 20);
             this.menu_reports.Text = "&Reports";
+            // 
+            // menu_reports_category
+            // 
+            this.menu_reports_category.Name = "menu_reports_category";
+            this.menu_reports_category.Size = new System.Drawing.Size(180, 22);
+            this.menu_reports_category.Text = "Assets by Category";
             // 
             // menu_reports_location
             // 
@@ -177,11 +185,11 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_help_about.Size = new System.Drawing.Size(114, 22);
             this.menu_help_about.Text = "&About";
             // 
-            // menu_reports_category
+            // menu_file_export
             // 
-            this.menu_reports_category.Name = "menu_reports_category";
-            this.menu_reports_category.Size = new System.Drawing.Size(180, 22);
-            this.menu_reports_category.Text = "Assets by Category";
+            this.menu_file_export.Name = "menu_file_export";
+            this.menu_file_export.Size = new System.Drawing.Size(152, 22);
+            this.menu_file_export.Text = "Export CSV...";
             // 
             // MainForm
             // 
@@ -224,5 +232,6 @@ namespace HeavyDuck.Eve.AssetManager
         private System.Windows.Forms.ToolStripMenuItem menu_reports_pos;
         private System.Windows.Forms.ToolStripMenuItem menu_reports_location;
         private System.Windows.Forms.ToolStripMenuItem menu_reports_category;
+        private System.Windows.Forms.ToolStripMenuItem menu_file_export;
     }
 }
