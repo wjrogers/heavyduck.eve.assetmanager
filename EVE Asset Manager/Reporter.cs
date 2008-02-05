@@ -21,14 +21,24 @@ namespace HeavyDuck.Eve.AssetManager
 
         public static void GenerateAssetsByLocationReport(DataTable data, string title, string outputPath)
         {
+            GenerateGenericReport(data, title, outputPath, "locationName", "categoryName");
+        }
+
+        public static void GenerateAssetsByCategoryReport(DataTable data, string title, string outputPath)
+        {
+            GenerateGenericReport(data, title, outputPath, "categoryName", "groupName");
+        }
+
+        public static void GenerateGenericReport(DataTable data, string title, string outputPath, string groupColumn, string subGroupColumn)
+        {
             DataView view;
             XmlWriter writer;
 
             // group by something
-            data = TableHelper.GroupBy(data, "locationName, categoryName, typeName, basePrice", "quantity");
+            data = TableHelper.GroupBy(data, groupColumn + ", " + subGroupColumn + ", typeName, basePrice, portionSize", "quantity");
 
             // create a view with the sort we need
-            view = new DataView(data, null, "locationName, categoryName, typeName", DataViewRowState.CurrentRows);
+            view = new DataView(data, null, groupColumn + ", " + subGroupColumn + ", typeName", DataViewRowState.CurrentRows);
 
             // open the output file
             using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
@@ -37,66 +47,122 @@ namespace HeavyDuck.Eve.AssetManager
                 writer = CreateWriter(output);
 
                 // start the document
-                WriteToBody(writer, title, SUBGROUP_GRAY_CSS);
+                WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
                 WritePriceDisclaimerBasePrice(writer);
                 writer.WriteStartElement("table");
 
                 // grouping variables
-                string currentLocation = null;
-                string currentCategory = null;
+                string currentGroup = null;
+                string currentSubGroup = null;
+                Dictionary<string, long> quantityTotals = null;
+                Dictionary<string, double> valueTotals = null;
 
                 // loop through the rows
                 foreach (DataRowView row in view)
                 {
                     // read some values
-                    string location = row["locationName"].ToString();
-                    string category = row["categoryName"].ToString();
-                    long? basePrice = null;
+                    string group = row[groupColumn].ToString();
+                    string subGroup = row[subGroupColumn].ToString();
+                    double basePrice = row["basePrice"] is DBNull ? 0 : Convert.ToDouble(row["basePrice"]);
+                    long portionSize = row["portionSize"] is DBNull ? 1 : Convert.ToInt64(row["portionSize"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
+                    double portions = quantity / (double)portionSize;
+                    double value = portions * basePrice;
 
-                    // make blank locations nicer, check nullness of price
-                    if (string.IsNullOrEmpty(location)) location = "???";
-                    if (!(row["basePrice"] is DBNull)) basePrice = Convert.ToInt64(row["basePrice"]);
+                    // make group/subgroup names ??? if they are blank
+                    if (string.IsNullOrEmpty(group)) group = "???";
+                    if (string.IsNullOrEmpty(subGroup)) subGroup = "???";
 
                     // group
-                    if (location != currentLocation)
+                    if (group != currentGroup)
                     {
-                        currentLocation = location;
-                        currentCategory = null;
+                        // summary rows for previous group
+                        if (currentGroup != null) WriteGenericTotalRows(writer, quantityTotals.Keys, quantityTotals, valueTotals);
+
+                        // set the new group
+                        currentGroup = group;
+                        currentSubGroup = null;
+                        quantityTotals = new Dictionary<string, long>();
+                        valueTotals = new Dictionary<string, double>();
 
                         // write the group row
                         writer.WriteStartElement("tr");
                         writer.WriteAttributeString("class", "group");
                         writer.WriteStartElement("th");
                         writer.WriteAttributeString("colspan", "3");
-                        writer.WriteString(location);
+                        writer.WriteString(group);
                         writer.WriteEndElement(); // th
                         writer.WriteEndElement(); // tr
                     }
 
                     // sub-group
-                    if (category != currentCategory)
+                    if (subGroup != currentSubGroup)
                     {
-                        currentCategory = category;
+                        currentSubGroup = subGroup;
 
-                        WriteSubGroupRow(writer, category, 3);
+                        WriteSubGroupRow(writer, subGroup, 3);
                     }
+
+                    // calculate and sum value, quantity
+                    if (quantityTotals.ContainsKey(subGroup))
+                        quantityTotals[subGroup] += quantity;
+                    else
+                        quantityTotals[subGroup] = quantity;
+                    if (valueTotals.ContainsKey(subGroup))
+                        valueTotals[subGroup] += value;
+                    else
+                        valueTotals[subGroup] = value;
 
                     // the actual thingy row
                     writer.WriteStartElement("tr");
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", row["typeName"].ToString());
-                    if (basePrice.HasValue)
-                        WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatInt64(quantity * basePrice.Value));
-                    else
-                        WriteElementRawWithClass(writer, "td", "r", QUESTION_HTML);
+                    WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(value));
                     writer.WriteEndElement();
                 }
+
+                // summary rows for last group, if any
+                if (currentGroup != null) WriteGenericTotalRows(writer, quantityTotals.Keys, quantityTotals, valueTotals);
 
                 // finish the document
                 writer.WriteEndDocument();
                 writer.Flush();
             }
+        }
+
+        private static void WriteGenericTotalRows(XmlWriter writer, IEnumerable<string> items, IDictionary<string, long> quantityTotals, IDictionary<string, double> valueTotals)
+        {
+            List<string> sorted;
+            long grandTotalQuantity = 0;
+            double grandTotalValue = 0;
+
+            // write the header
+            WriteSubGroupRow(writer, "Total", 3);
+
+            // sort the items
+            sorted = new List<string>(items);
+            sorted.Sort();
+
+            // iterate them
+            foreach (string key in sorted)
+            {
+                grandTotalQuantity += quantityTotals[key];
+                    grandTotalValue += valueTotals[key];
+
+                writer.WriteStartElement("tr");
+                WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantityTotals[key]));
+                writer.WriteElementString("td", key);
+                WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(valueTotals[key]));
+                writer.WriteEndElement(); // tr
+            }
+
+            // write the grand total
+            writer.WriteStartElement("tr");
+            writer.WriteAttributeString("class", "bold");
+            WriteElementStringWithClass(writer, "td", "r", FormatInt64(grandTotalQuantity));
+            writer.WriteElementString("td", "Grand Total");
+            WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(grandTotalValue));
+            writer.WriteEndElement(); // tr
         }
 
         public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
