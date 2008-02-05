@@ -28,8 +28,8 @@ namespace HeavyDuck.Eve.AssetManager
             m_fields.Add(new SearchField("Group", "g.groupName", SearchField.SearchFieldType.String));
 
             // category name
-            field = new SearchField("Category", "g.categoryID", SearchField.SearchFieldType.Enum);
-            field.DataSource = GetFieldOptions("SELECT categoryName AS name, categoryID AS value FROM invCategories WHERE published = 1 ORDER BY categoryName");
+            field = new SearchField("Category", "cat.categoryName", SearchField.SearchFieldType.Enum);
+            field.DataSource = GetFieldOptions("SELECT categoryName AS name FROM invCategories WHERE published = 1 ORDER BY categoryName");
             m_fields.Add(field);
 
             // flag
@@ -207,45 +207,12 @@ namespace HeavyDuck.Eve.AssetManager
         /// <summary>
         /// Gets or sets the current value of the search field.
         /// </summary>
-        public object Value
-        {
-            get
-            {
-                object value;
-                
-                // extract from the edit control if we can
-                if (m_edit_control is TextBox)
-                    value = ((TextBox)m_edit_control).Text;
-                else if (m_edit_control is ComboBox)
-                    value = ((ComboBox)m_edit_control).SelectedValue;
-                else
-                    value = null;
-
-                // do a check for empty strings
-                if (value is string && ((string)value).Trim() == "")
-                    value = null;
-
-                // now return it
-                return value;
-            }
-            set
-            {
-                if (m_edit_control is TextBox)
-                    ((TextBox)m_edit_control).Text = value == null ? null : value.ToString();
-                else if (m_edit_control is ComboBox)
-                    ((ComboBox)m_edit_control).SelectedValue = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the current text displayed in the search field's value control.
-        /// </summary>
-        public string ValueText
+        public string Value
         {
             get
             {
                 string value;
-
+                
                 // extract from the edit control if we can
                 if (m_edit_control is TextBox)
                     value = ((TextBox)m_edit_control).Text;
@@ -254,11 +221,11 @@ namespace HeavyDuck.Eve.AssetManager
                 else
                     value = null;
 
-                // check for empty strings
-                if (value != null && value.Trim() == "")
+                // do a check for empty strings
+                if (value is string && ((string)value).Trim() == "")
                     value = null;
 
-                // return
+                // now return it
                 return value;
             }
             set
@@ -359,7 +326,6 @@ namespace HeavyDuck.Eve.AssetManager
                         if (m_dataSource is DataTable)
                         {
                             combo.DisplayMember = "name";
-                            combo.ValueMember = "value";
                         }
                         combo.DataSource = m_dataSource;
 
