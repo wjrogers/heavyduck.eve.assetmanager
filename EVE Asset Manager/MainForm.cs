@@ -727,11 +727,19 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // fetch corporation assets?
-                try
+                if (queryCorp && !assetFiles.ContainsKey(corporationName))
                 {
-                    if (queryCorp && !assetFiles.ContainsKey(corporationName))
+                    // attempt the query
+                    result = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
+
+                    // check whether we got an eve error about not being a director
+                    if (result.Exception != null && result.Exception is EveApiException && ((EveApiException)result.Exception).ErrorCode == 209)
                     {
-                        result = EveApiHelper.GetCorporationAssetList(userID, apiKey, characterID, corporationID);
+                        System.Diagnostics.Debug.WriteLine(characterName + " is not a Director or CEO of " + corporationName + ".");
+                        row["queryCorp"] = false;
+                    }
+                    else
+                    {
                         switch (result.State)
                         {
                             case CacheState.Cached:
@@ -744,19 +752,6 @@ namespace HeavyDuck.Eve.AssetManager
                             default:
                                 throw new ApplicationException("Failed to retrieve asset data for " + corporationName, result.Exception);
                         }
-                    }
-                }
-                catch (EveApiException ex)
-                {
-                    // we don't care about errors due to inadequate permissions, but we will switch off corp data for this character
-                    if (ex.ErrorCode == 209)
-                    {
-                        System.Diagnostics.Debug.WriteLine(characterName + " is not a Director or CEO of " + corporationName + ".");
-                        row["queryCorp"] = false;
-                    }
-                    else
-                    {
-                        throw;
                     }
                 }
             }
