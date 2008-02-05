@@ -208,7 +208,7 @@ namespace HeavyDuck.Eve.AssetManager
                         if (!materialPrices.ContainsKey(typeID))
                         {
                             // we don't have a price for this type yet, try to fetch it
-                            tempValue = EveCentralHelper.GetItemAveragePrice(typeID);
+                            tempValue = EveCentralHelper.GetItemMarketStat(typeID, MarketStat.AvgSellPrice);
 
                             // store this value, even if it's 0, in the thingy
                             materialPrices[typeID] = tempValue;
