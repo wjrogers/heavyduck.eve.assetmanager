@@ -13,7 +13,7 @@ namespace HeavyDuck.Eve.AssetManager
 
     internal static class Reporter
     {
-        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1, p { margin: 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } .group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } .subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
+        private const string REPORT_CSS = @"body { margin: 0; padding: 20px; background-color: #EEE; font: normal 10pt Verdana,sans-serif; } h1 { margin: 0; } p { margin: 0 0 8px 0; } table { margin: 10px 0; border-collapse: collapse; background-color: white; font-size: 1em; } th, td { padding: 2px 4px; border: 1px solid #DDD; } .group th { font-weight: bold; text-align: left; padding-top: 5px; padding-bottom: 5px; color: white; background-color: #333; } .subgroup th { text-align: left; font-weight: bold; } .bold, .bold td { font-weight: bold; } .error { color: red; font-weight: bold; } .r { text-align: right; } .l { font-size: larger; } .s { width: 2em; } .g { color: #CCC; }";
 
         public static void GenerateLoadoutReport(DataTable data, string title, string outputPath)
         {
@@ -181,6 +181,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // start writing
                 WriteToBody(writer, title, ".subgroup th { background-color: #FFC; }");
+                WritePriceDisclaimerEveCentral(writer);
                 writer.WriteStartElement("table");
 
                 // the stuff for grouping
@@ -551,9 +552,14 @@ namespace HeavyDuck.Eve.AssetManager
         private static void WriteToBody(XmlWriter writer, string title, params string[] extraCss)
         {
             // start the document
-            writer.WriteStartElement("html");
+            writer.WriteRaw("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n");
+            writer.WriteStartElement("html", "http://www.w3.org/1999/xhtml");
             writer.WriteStartElement("head");
             writer.WriteElementString("title", title);
+            writer.WriteStartElement("meta");
+            writer.WriteAttributeString("http-equiv", "Content-Type");
+            writer.WriteAttributeString("content", "text/html;charset=utf-8");
+            writer.WriteEndElement(); // meta
 
             // CSS
             WriteCss(writer, REPORT_CSS);
@@ -616,6 +622,22 @@ namespace HeavyDuck.Eve.AssetManager
         private static void WriteSpacerCell(XmlWriter writer)
         {
             WriteElementStringWithClass(writer, "td", "s", " ");
+        }
+
+        private static void WritePriceDisclaimerBasePrice(XmlWriter writer)
+        {
+            writer.WriteStartElement("p");
+            writer.WriteElementString("strong", "Note: ");
+            writer.WriteString("prices in this report are the baseprice of the module and may not be representative of actual market value.");
+            writer.WriteEndElement();
+        }
+
+        private static void WritePriceDisclaimerEveCentral(XmlWriter writer)
+        {
+            writer.WriteStartElement("p");
+            writer.WriteElementString("strong", "Note: ");
+            writer.WriteRaw("prices in this report use the <tt>avg_sell_price</tt> field from <a href=\"http://eve-central.com/\">EVE-Central</a>, limited to region The Forge.");
+            writer.WriteEndElement();
         }
 
         private static string FormatTimeSpan(TimeSpan value)
