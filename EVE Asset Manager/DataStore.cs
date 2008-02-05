@@ -115,7 +115,13 @@ namespace HeavyDuck.Eve.AssetManager
 
         public static DataTable GetSavedSearches()
         {
-            return GetTable("SELECT * FROM saved_searches ORDER BY name");
+            DataTable data;
+
+            data = GetTable("SELECT * FROM saved_searches ORDER BY name");
+            data.PrimaryKey = new DataColumn[] { data.Columns["id"] };
+            data.Constraints.Add("name_unique", data.Columns["name"], false);
+
+            return data;
         }
 
         public static DataTable GetSavedSearchParameters(long searchID)
@@ -208,6 +214,60 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // finally!
+                trans.Commit();
+            }
+            catch
+            {
+                trans.Rollback();
+                throw;
+            }
+            finally
+            {
+                if (trans != null) trans.Dispose();
+                if (conn != null) conn.Dispose();
+            }
+        }
+
+        public static void UpdateSearches(DataTable searches)
+        {
+            if (searches == null) throw new ArgumentNullException("searches");
+
+            SQLiteConnection conn = null;
+            SQLiteTransaction trans = null;
+
+            try
+            {
+                conn = GetOpenConnection();
+                trans = conn.BeginTransaction();
+
+                using (SQLiteCommand updateCmd = conn.CreateCommand(), deleteCmd = conn.CreateCommand())
+                {
+                    // define the SQL statements
+                    updateCmd.CommandText = "UPDATE saved_searches SET name = @name WHERE id = @id";
+                    updateCmd.Parameters.Add("@id", DbType.Int64);
+                    updateCmd.Parameters.Add("@name", DbType.String);
+                    deleteCmd.CommandText = "DELETE FROM saved_search_parameters WHERE search_id = @id; DELETE FROM saved_searches WHERE id = @id";
+                    deleteCmd.Parameters.Add("@id", DbType.Int64);
+
+                    // loop? I don't know
+                    foreach (DataRow row in searches.Rows)
+                    {
+                        switch (row.RowState)
+                        {
+                            case DataRowState.Deleted:
+                                deleteCmd.Parameters["@id"].Value = row["id", DataRowVersion.Original];
+                                deleteCmd.ExecuteNonQuery();
+                                break;
+                            case DataRowState.Modified:
+                                updateCmd.Parameters["@id"].Value = row["id"];
+                                updateCmd.Parameters["@name"].Value = row["name"];
+                                updateCmd.ExecuteNonQuery();
+                                break;
+                        }
+                    }
+                }
+
+                // we made it!
                 trans.Commit();
             }
             catch

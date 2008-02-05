@@ -144,6 +144,9 @@ namespace HeavyDuck.Eve.AssetManager
                 case "save_query":
                     SaveSearch();
                     break;
+                case "manage_queries":
+                    ManageSavedSearches();
+                    break;
             }
         }
 
@@ -437,8 +440,8 @@ namespace HeavyDuck.Eve.AssetManager
         {
             DataTable searches;
             ToolStripDropDownButton button;
-            ToolStripDropDown menu;
-            ToolStripButton item;
+            ContextMenuStrip menu;
+            ToolStripMenuItem item;
 
             // grab the table of saved searches from our datastore
             try
@@ -453,19 +456,60 @@ namespace HeavyDuck.Eve.AssetManager
 
             // build the menu
             button = (ToolStripDropDownButton)toolbar.Items["load_query"];
-            menu = new ToolStripDropDown();
+            menu = new ContextMenuStrip();
             foreach (DataRow row in searches.Rows)
             {
                 string name = row["name"].ToString();
                 long id = Convert.ToInt64(row["id"]);
 
-                item = new ToolStripButton(name, Properties.Resources.magnifier);
+                item = new ToolStripMenuItem(name, Properties.Resources.magnifier);
                 item.Click += new EventHandler(ToolStripSearch_Click);
                 item.Tag = id;
 
                 menu.Items.Add(item);
             }
+            if (menu.Items.Count > 0)
+            {
+                menu.Items.Add("-");
+                menu.Items.Add(new ToolStripMenuItem("Manage Saved Queries...", null, ToolStripItem_Click, "manage_queries"));
+            }
             button.DropDown = menu;
+        }
+
+        private void ManageSavedSearches()
+        {
+            DataTable searches, changes;
+            SearchManager manager;
+
+            // fetch the current list and create a manager form
+            try
+            {
+                searches = DataStore.GetSavedSearches();
+                manager = new SearchManager(searches);
+            }
+            catch (Exception ex)
+            {
+                ShowException(ex);
+                return;
+            }
+
+            // show the form
+            manager.ShowDialog(this);
+
+            // let's see if the user changed anything
+            changes = searches.GetChanges();
+            if (changes == null || changes.Rows.Count < 1) return;
+
+            // save the changes
+            try
+            {
+                DataStore.UpdateSearches(changes);
+                UpdateSavedSearches();
+            }
+            catch (Exception ex)
+            {
+                ShowException("Failed to save your changes:", ex);
+            }
         }
 
         private delegate void ProcessSavedSearchCallback(string fieldName, BooleanOp booleanOp, SearchClauseControl.ComparisonOp comparisonOp, string value);

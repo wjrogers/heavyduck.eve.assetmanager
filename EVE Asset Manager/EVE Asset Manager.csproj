@@ -103,6 +103,10 @@
       <SubType>Designer</SubType>
       <DependentUpon>SearchClauseControl.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="SearchManager.resx">
+      <DependentUpon>SearchManager.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
@@ -129,6 +133,12 @@
     </Compile>
     <Compile Include="SearchClauseControl.Designer.cs">
       <DependentUpon>SearchClauseControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SearchManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SearchManager.Designer.cs">
+      <DependentUpon>SearchManager.cs</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
