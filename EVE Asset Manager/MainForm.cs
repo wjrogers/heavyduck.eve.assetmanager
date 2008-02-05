@@ -38,6 +38,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.KeyDown += new KeyEventHandler(MainForm_KeyDown);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
+            menu_file_export.Click += new EventHandler(menu_file_export_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
             menu_reports_category.Click += new EventHandler(menu_reports_category_Click);
             menu_reports_location.Click += new EventHandler(menu_reports_location_Click);
@@ -234,6 +235,11 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 ShowException(ex);
             }
+        }
+
+        private void menu_file_export_Click(object sender, EventArgs e)
+        {
+            GenerateReport("Assets", "CSV Files (*.csv)|*.csv", "csv", ExportCsv);
         }
 
         private void menu_file_exit_Click(object sender, EventArgs e)
@@ -571,6 +577,11 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void GenerateReport(string defaultTitle, GenerateReportDelegate reportMethod)
         {
+            GenerateReport(defaultTitle, "HTML Files (*.html)|*.html", "html", reportMethod);
+        }
+
+        private void GenerateReport(string defaultTitle, string fileFilter, string defaultExt, GenerateReportDelegate reportMethod)
+        {
             List<WhereClause> clauses;
             DataTable assets;
             ProgressDialog dialog;
@@ -579,7 +590,7 @@ namespace HeavyDuck.Eve.AssetManager
             int savedSearchID = -1;
 
             // ask the user some stuff
-            options = new ReportOptionsDialog();
+            options = new ReportOptionsDialog(fileFilter, defaultExt);
             options.ReportTitle = defaultTitle;
             if (options.ShowDialog(this) == DialogResult.Cancel) return;
             sourceType = options.AssetSource;
@@ -807,6 +818,58 @@ namespace HeavyDuck.Eve.AssetManager
             m_assets = AssetCache.GetAssetTable(m_clauses);
             m_assets.DefaultView.Sort = "typeName ASC";
             dialog.Advance();
+        }
+
+        private void ExportCsv(DataTable data, string title, string outputPath)
+        {
+            // argument sanity checks
+            if (data == null) throw new ArgumentNullException("data");
+            if (string.IsNullOrEmpty(outputPath)) throw new ArgumentNullException(outputPath);
+            if (data.Columns.Count < 1) return;
+
+            using (FileStream fs = File.Open(outputPath, FileMode.Create, FileAccess.Write))
+            {
+                using (StreamWriter writer = new StreamWriter(fs, new UTF8Encoding(false)))
+                {
+                    // write the column headers
+                    writer.Write(data.Columns[0].ColumnName);
+                    for (int i = 1; i < data.Columns.Count; ++i)
+                    {
+                        writer.Write(',');
+                        writer.Write(data.Columns[i].ColumnName);
+                    }
+                    writer.WriteLine();
+
+                    // write data
+                    foreach (DataRow row in data.Rows)
+                    {
+                        WriteCsvValue(writer, row[data.Columns[0]]);
+                        for (int i = 0; i < data.Columns.Count; ++i)
+                        {
+                            writer.Write(',');
+                            WriteCsvValue(writer, row[data.Columns[i]]);
+                        }
+                        writer.WriteLine();
+                    }
+
+                    // make sure it all goes down
+                    writer.Flush();
+                }
+            }
+        }
+
+        private static void WriteCsvValue(TextWriter writer, object value)
+        {
+            if (value is string)
+            {
+                writer.Write('"');
+                writer.Write(value.ToString().Replace("\"", "\"\""));
+                writer.Write('"');
+            }
+            else if (value != null)
+            {
+                writer.Write(value.ToString());
+            }
         }
 
         private void ShowException(Exception ex)

@@ -11,9 +11,20 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public partial class ReportOptionsDialog : Form
     {
-        public ReportOptionsDialog()
+        private string m_fileFilter;
+        private string m_defaultExt;
+
+        public ReportOptionsDialog(string fileFilter, string defaultExt)
         {
             InitializeComponent();
+
+            // check arguments
+            if (string.IsNullOrEmpty(fileFilter)) throw new ArgumentNullException("fileFilter");
+            if (string.IsNullOrEmpty(defaultExt)) throw new ArgumentNullException("defaultExt");
+
+            // store parameters
+            m_fileFilter = fileFilter;
+            m_defaultExt = defaultExt.StartsWith(".") ? defaultExt.Substring(1) : defaultExt;
 
             // event handlers
             this.Load += new EventHandler(ReportOptionsDialog_Load);
@@ -27,7 +38,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // initialize the report path
             if (!string.IsNullOrEmpty(title))
-                ReportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), string.Format("EVE_{0}_{1:yyyyMMddHHmm}.html", title.Replace(" ", ""), DateTime.Now));
+                ReportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), string.Format("EVE_{0}_{1:yyyyMMddHHmm}.{2}", title.Replace(" ", ""), DateTime.Now, m_defaultExt));
 
             // prep the saved search combo
             try
@@ -59,9 +70,9 @@ namespace HeavyDuck.Eve.AssetManager
 
             // initialize dialog
             dialog.FileName = ReportPath;
-            dialog.Filter = "HTML Files (*.html)|*.html";
+            dialog.Filter = m_fileFilter;
             dialog.AddExtension = true;
-            dialog.DefaultExt = "html";
+            dialog.DefaultExt = m_defaultExt;
             dialog.OverwritePrompt = true;
 
             // show it
