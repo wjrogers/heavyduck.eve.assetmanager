@@ -36,15 +36,12 @@ namespace HeavyDuck.Eve.AssetManager
             ToolStripManager.VisualStylesEnabled = false;
 
             // look for the static data db
-            if (File.Exists(CCP_DB_NAME))
-            {
-                m_ccpDbPath = CCP_DB_NAME;
-            }
-            else if (File.Exists(Path.Combine(@"C:\Temp", CCP_DB_NAME)))
-            {
-                m_ccpDbPath = Path.Combine(@"C:\Temp", CCP_DB_NAME);
-            }
-            else
+#if DEBUG
+            m_ccpDbPath = Path.Combine(@"C:\Temp", CCP_DB_NAME);
+#else
+            m_ccpDbPath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), CCP_DB_NAME);
+#endif
+            if (!File.Exists(m_ccpDbPath))
             {
                 MessageBox.Show("Could not find the CCP database file. Please download it from http://dl.eve-files.com/media/0712/trinity_1.0_sqlite3.db.zip!", "Database Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
