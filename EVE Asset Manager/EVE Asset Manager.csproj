@@ -167,6 +167,9 @@
     <None Include="Resources\add.png" />
     <None Include="Resources\disk.png" />
     <None Include="Resources\folder.png" />
+    <Content Include="license.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="treasure-chest.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
