@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?> 
+<OptionsDefinition>
+    <Group name="General">
+        <Option name="General.StartupRefresh" type="Bool" label="Refresh assets at startup" default="false" />
+    </Group>
+    <Group name="Reports">
+        <Option name="Reports.DefaultPath" type="String" label="Default output path" default="" picker="folder" />
+        <Option name="Reports.OpenReport" type="Bool" label="Open newly generated reports" default="true" />
+    </Group>
+</OptionsDefinition>
+

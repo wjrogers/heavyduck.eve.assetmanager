@@ -34,11 +34,18 @@ namespace HeavyDuck.Eve.AssetManager
         private void ReportOptionsDialog_Load(object sender, EventArgs e)
         {
             DataTable searches;
+            string pathOption = Program.OptionsDialog["Reports.DefaultPath"].ValueAsString;
+            string outputFolder;
             string title = ReportTitle;
 
             // initialize the report path
-            if (!string.IsNullOrEmpty(title))
-                ReportPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), string.Format("EVE_{0}_{1:yyyyMMddHHmm}.{2}", title.Replace(" ", ""), DateTime.Now, m_defaultExt));
+            if (string.IsNullOrEmpty(pathOption) || !Directory.Exists(pathOption))
+                outputFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            else
+                outputFolder = pathOption;
+            if (string.IsNullOrEmpty(title))
+                title = "Report";
+            ReportPath = Path.Combine(outputFolder, string.Format("EVE_{0}_{1:yyyyMMddHHmm}.{2}", title.Replace(" ", ""), DateTime.Now, m_defaultExt));
 
             // prep the saved search combo
             try

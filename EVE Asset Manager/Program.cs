@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
 using HeavyDuck.Eve;
+using HeavyDuck.Utilities.Forms;
 
 namespace HeavyDuck.Eve.AssetManager
 {
@@ -21,6 +23,7 @@ namespace HeavyDuck.Eve.AssetManager
 
         private static DataTable m_keys;
         private static DataTable m_characters;
+        private static OptionsDialog m_options;
 
         /// <summary>
         /// The main entry point for the application.
@@ -73,6 +76,25 @@ namespace HeavyDuck.Eve.AssetManager
                 // pass
             }
 
+            // create options dialog
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(typeof(Program), "Resources.options.xml"))
+                m_options = OptionsDialog.FromStream(stream);
+
+            // load options
+            try
+            {
+                string optionsXml = DataStore.GetSetting("options");
+                if (!string.IsNullOrEmpty(optionsXml))
+                {
+                    using (StringReader reader = new StringReader(optionsXml))
+                        m_options.LoadValuesXml(reader);
+                }
+            }
+            catch (Exception ex)
+            {
+                MainForm.ShowException(null, "Failed to load your options.", ex);
+            }
+
             // load keys and characters from disk
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
             LoadDataTable(m_characters, "characters.xml", "Failed to load your character list. You may need to reset your corp asset preferences.");
@@ -83,6 +105,20 @@ namespace HeavyDuck.Eve.AssetManager
             // save our API keys and characters to disk
             SaveDataTable(m_keys, "keys.xml", "Failed to save your API keys. You may need to re-enter them next time.");
             SaveDataTable(m_characters, "characters.xml", "Failed to save your character list. You may need to reset your corp asset preferences next time.");
+
+            // save options
+            try
+            {
+                using (StringWriter writer = new StringWriter())
+                {
+                    m_options.SaveValuesXml(writer);
+                    DataStore.SetSetting("options", writer.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                MainForm.ShowException(null, "Failed to save your options.", ex);
+            }
         }
 
         #region Public Properties
@@ -105,6 +141,11 @@ namespace HeavyDuck.Eve.AssetManager
         public static string CcpDatabasePath
         {
             get { return m_ccpDbPath; }
+        }
+
+        public static OptionsDialog OptionsDialog
+        {
+            get { return m_options; }
         }
 
         #endregion
@@ -192,7 +233,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show(errorText + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MainForm.ShowException(null, errorText, ex);
             }
         }
 
@@ -206,7 +247,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show(errorText + "\n\n" + ex.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MainForm.ShowException(null, errorText, ex);
             }
         }
 
