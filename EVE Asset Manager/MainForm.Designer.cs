@@ -34,6 +34,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu = new System.Windows.Forms.MenuStrip();
             this.menu_file = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_file_import = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_file_export = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.menu_file_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_reports = new System.Windows.Forms.ToolStripMenuItem();
@@ -44,10 +45,11 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_reports_loadouts = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_options_refresh = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.menu_options_keys = new System.Windows.Forms.ToolStripMenuItem();
+            this.menu_options_options = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help = new System.Windows.Forms.ToolStripMenuItem();
             this.menu_help_about = new System.Windows.Forms.ToolStripMenuItem();
-            this.menu_file_export = new System.Windows.Forms.ToolStripMenuItem();
             this.menu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -94,18 +96,24 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_file_import
             // 
             this.menu_file_import.Name = "menu_file_import";
-            this.menu_file_import.Size = new System.Drawing.Size(152, 22);
+            this.menu_file_import.Size = new System.Drawing.Size(151, 22);
             this.menu_file_import.Text = "Import XML...";
+            // 
+            // menu_file_export
+            // 
+            this.menu_file_export.Name = "menu_file_export";
+            this.menu_file_export.Size = new System.Drawing.Size(151, 22);
+            this.menu_file_export.Text = "Export CSV...";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(148, 6);
             // 
             // menu_file_exit
             // 
             this.menu_file_exit.Name = "menu_file_exit";
-            this.menu_file_exit.Size = new System.Drawing.Size(152, 22);
+            this.menu_file_exit.Size = new System.Drawing.Size(151, 22);
             this.menu_file_exit.Text = "E&xit";
             // 
             // menu_reports
@@ -154,7 +162,9 @@ namespace HeavyDuck.Eve.AssetManager
             // 
             this.menu_options.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menu_options_refresh,
-            this.menu_options_keys});
+            this.toolStripSeparator2,
+            this.menu_options_keys,
+            this.menu_options_options});
             this.menu_options.Name = "menu_options";
             this.menu_options.Size = new System.Drawing.Size(56, 20);
             this.menu_options.Text = "&Options";
@@ -162,14 +172,25 @@ namespace HeavyDuck.Eve.AssetManager
             // menu_options_refresh
             // 
             this.menu_options_refresh.Name = "menu_options_refresh";
-            this.menu_options_refresh.Size = new System.Drawing.Size(169, 22);
+            this.menu_options_refresh.Size = new System.Drawing.Size(181, 22);
             this.menu_options_refresh.Text = "Refresh Assets";
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(178, 6);
             // 
             // menu_options_keys
             // 
             this.menu_options_keys.Name = "menu_options_keys";
-            this.menu_options_keys.Size = new System.Drawing.Size(169, 22);
-            this.menu_options_keys.Text = "Manage API Keys";
+            this.menu_options_keys.Size = new System.Drawing.Size(181, 22);
+            this.menu_options_keys.Text = "Manage API Keys...";
+            // 
+            // menu_options_options
+            // 
+            this.menu_options_options.Name = "menu_options_options";
+            this.menu_options_options.Size = new System.Drawing.Size(181, 22);
+            this.menu_options_options.Text = "Options...";
             // 
             // menu_help
             // 
@@ -184,12 +205,6 @@ namespace HeavyDuck.Eve.AssetManager
             this.menu_help_about.Name = "menu_help_about";
             this.menu_help_about.Size = new System.Drawing.Size(114, 22);
             this.menu_help_about.Text = "&About";
-            // 
-            // menu_file_export
-            // 
-            this.menu_file_export.Name = "menu_file_export";
-            this.menu_file_export.Size = new System.Drawing.Size(152, 22);
-            this.menu_file_export.Text = "Export CSV...";
             // 
             // MainForm
             // 
@@ -233,5 +248,7 @@ namespace HeavyDuck.Eve.AssetManager
         private System.Windows.Forms.ToolStripMenuItem menu_reports_location;
         private System.Windows.Forms.ToolStripMenuItem menu_reports_category;
         private System.Windows.Forms.ToolStripMenuItem menu_file_export;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem menu_options_options;
     }
 }

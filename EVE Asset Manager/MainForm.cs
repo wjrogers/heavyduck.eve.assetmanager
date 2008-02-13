@@ -35,6 +35,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
+            this.Shown += new EventHandler(MainForm_Shown);
             this.KeyDown += new KeyEventHandler(MainForm_KeyDown);
             this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
@@ -47,6 +48,7 @@ namespace HeavyDuck.Eve.AssetManager
             menu_reports_pos.Click += new EventHandler(menu_reports_pos_Click);
             menu_options_refresh.Click += new EventHandler(menu_options_refresh_Click);
             menu_options_keys.Click += new EventHandler(menu_options_keys_Click);
+            menu_options_options.Click += new EventHandler(menu_options_options_Click);
             menu_help_about.Click += new EventHandler(menu_help_about_Click);
         }
 
@@ -106,6 +108,13 @@ namespace HeavyDuck.Eve.AssetManager
             InitializeSearchControls();
             UpdateAssetCount();
             UpdateSavedSearches();
+        }
+
+        private void MainForm_Shown(object sender, EventArgs e)
+        {
+            // refresh assets at startup if that option is set
+            if (Program.OptionsDialog["General.StartupRefresh"].ValueAsBoolean)
+                menu_options_refresh_Click(this, EventArgs.Empty);
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
@@ -296,6 +305,11 @@ namespace HeavyDuck.Eve.AssetManager
         private void menu_options_keys_Click(object sender, EventArgs e)
         {
             KeyManager.Show(this);
+        }
+
+        private void menu_options_options_Click(object sender, EventArgs e)
+        {
+            Program.OptionsDialog.Show(this);
         }
 
         private void menu_help_about_Click(object sender, EventArgs e)
@@ -650,7 +664,8 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // open the report
-            System.Diagnostics.Process.Start(options.ReportPath);
+            if (Program.OptionsDialog["Reports.OpenReport"].ValueAsBoolean)
+                System.Diagnostics.Process.Start(options.ReportPath);
         }
 
         private void UpdateAssetCount()
@@ -874,14 +889,19 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void ShowException(Exception ex)
         {
-            ShowException(null, ex);
+            ShowException(this, null, ex);
         }
 
         private void ShowException(string intro, Exception ex)
         {
+            ShowException(this, intro, ex);
+        }
+
+        internal static void ShowException(IWin32Window owner, string intro, Exception ex)
+        {
             if (ex == null) throw new ArgumentNullException("ex");
             string message = string.IsNullOrEmpty(intro) ? ex.ToString() : intro + "\n\n" + ex.ToString();
-            MessageBox.Show(this, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(owner, message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         #endregion
