@@ -247,8 +247,8 @@ namespace HeavyDuck.Eve.AssetManager
                     cmd.Parameters.Add("@itemID", DbType.Int64);
                     cmd.Parameters.AddWithValue("@characterName", characterName);
                     cmd.Parameters.Add("@locationID", DbType.Int64);
-                    cmd.Parameters.Add("@typeID", DbType.Int32);
-                    cmd.Parameters.Add("@quantity", DbType.Int32);
+                    cmd.Parameters.Add("@typeID", DbType.Int64);
+                    cmd.Parameters.Add("@quantity", DbType.Int64);
                     cmd.Parameters.Add("@flag", DbType.Int32);
                     cmd.Parameters.Add("@singleton", DbType.Boolean);
                     cmd.Parameters.Add("@containerID", DbType.Int64);
@@ -262,25 +262,8 @@ namespace HeavyDuck.Eve.AssetManager
 
                         while (iter.MoveNext())
                         {
-                            ProcessNode(iter.Current, cmd, null);
+                            ProcessNode(iter.Current, cmd, null, null);
                         }
-                    }
-                }
-
-                // back-fill location IDs from container locationIDs
-                using (SQLiteCommand cmd = conn.CreateCommand())
-                {
-                    int affected = int.MaxValue;
-                    int runs = 0;
-
-                    // prepare command text
-                    cmd.CommandText = "UPDATE assets SET locationID = (SELECT locationID FROM assets a WHERE a.itemID = assets.containerID) WHERE locationID IS NULL";
-
-                    // keep running this query until it has no effect (all locationIDs are populated) or we hit the limit
-                    while (affected > 0 && runs < MAX_FIX_ID_RUNS)
-                    {
-                        affected = cmd.ExecuteNonQuery();
-                        runs++;
                     }
                 }
 
@@ -299,19 +282,33 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private static void ProcessNode(XPathNavigator node, SQLiteCommand insertCmd, Int64? containerID)
+        private static void ProcessNode(XPathNavigator node, SQLiteCommand insertCmd, long? locationID, long? containerID)
         {
             XPathNodeIterator contentIter;
             XPathNavigator tempNode;
-            long itemID;
+            long itemID, typeID;
+
+            // look for a locationID attribute
+            typeID = node.SelectSingleNode("@typeID").ValueAsLong;
+            tempNode = node.SelectSingleNode("@locationID");
+            if (tempNode != null)
+            {
+                // correct office location IDs?
+                if (typeID == 27 && tempNode.Value.StartsWith("66"))
+                    locationID = tempNode.ValueAsLong - 6000001L;
+                else if (typeID == 27 && tempNode.Value.StartsWith("67"))
+                    locationID = tempNode.ValueAsLong - 6000000L;
+                else
+                    locationID = tempNode.ValueAsLong;
+
+            }
 
             // read the values
             itemID = node.SelectSingleNode("@itemID").ValueAsLong;
             insertCmd.Parameters["@itemID"].Value = itemID;
-            tempNode = node.SelectSingleNode("@locationID");
-            insertCmd.Parameters["@locationID"].Value = (tempNode == null ? (object)DBNull.Value : tempNode.ValueAsLong);
-            insertCmd.Parameters["@typeID"].Value = node.SelectSingleNode("@typeID").ValueAsInt;
-            insertCmd.Parameters["@quantity"].Value = node.SelectSingleNode("@quantity").ValueAsInt;
+            insertCmd.Parameters["@locationID"].Value = locationID;
+            insertCmd.Parameters["@typeID"].Value = typeID;
+            insertCmd.Parameters["@quantity"].Value = node.SelectSingleNode("@quantity").ValueAsLong;
             insertCmd.Parameters["@flag"].Value = node.SelectSingleNode("@flag").ValueAsInt;
             insertCmd.Parameters["@singleton"].Value = node.SelectSingleNode("@singleton").ValueAsBoolean;
             insertCmd.Parameters["@containerID"].Value = containerID.HasValue ? containerID.Value : (object)DBNull.Value;
@@ -333,7 +330,7 @@ namespace HeavyDuck.Eve.AssetManager
             contentIter = node.Select("rowset/row");
             while (contentIter.MoveNext())
             {
-                ProcessNode(contentIter.Current, insertCmd, itemID);
+                ProcessNode(contentIter.Current, insertCmd, locationID, itemID);
             }
         }
 
