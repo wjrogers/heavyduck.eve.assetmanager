@@ -3,6 +3,11 @@
     <Group name="General">
         <Option name="General.StartupRefresh" type="Bool" label="Refresh assets at startup" default="false" />
     </Group>
+    <Group name="Pricing">
+        <Option name="Pricing.ZeroBlueprints" type="Bool" label="Zero all blueprint prices" default="true" />
+        <Option name="Pricing.UseBasePrice" type="Bool" label="When market data is unavailable, use baseprice" default="true" />
+        <Option name="Pricing.CorrectBasePrice" type="Bool" label="Apply certain baseprice corrections" default="false" />
+    </Group>
     <Group name="Reports">
         <Option name="Reports.DefaultPath" type="String" label="Default output path" default="" picker="folder" />
         <Option name="Reports.OpenReport" type="Bool" label="Open newly generated reports" default="true" />
