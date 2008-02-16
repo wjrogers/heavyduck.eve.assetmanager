@@ -624,15 +624,15 @@ namespace HeavyDuck.Eve.AssetManager
                     // check that we have the latest pricing data
                     p.Update("Updating prices...");
                     CachedResult result = NonNinjaHelper.GetMediansTxt();
-                    Dictionary<long, NonNinjaMedians> medians;
-                    Dictionary<long, float> prices;
+                    Dictionary<int, NonNinjaMedians> medians;
+                    Dictionary<int, float> prices;
                     if (result.IsUpdated || (!EveTypes.HasPrices && result.State != CacheState.Uncached))
                     {
                         medians = NonNinjaHelper.ParseMediansTxt(result.Path);
-                        prices = new Dictionary<long, float>(medians.Count);
+                        prices = new Dictionary<int, float>(medians.Count);
 
                         // convert to the format needed by the EveTypes helper
-                        foreach (KeyValuePair<long, NonNinjaMedians> pair in medians)
+                        foreach (KeyValuePair<int, NonNinjaMedians> pair in medians)
                             prices[pair.Key] = pair.Value.SellMedian;
 
                         EveTypes.SetPrices(prices);

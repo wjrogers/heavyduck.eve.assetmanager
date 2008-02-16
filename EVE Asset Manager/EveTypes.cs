@@ -8,69 +8,58 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public static class EveTypes
     {
-        private static Dictionary<long, EveItemCategory> m_categories;
-        private static Dictionary<long, EveItemGroup> m_groups;
-        private static Dictionary<long, EveItemType> m_items;
+        public static Dictionary<int, EveItemCategory> Categories { get; private set; }
+        public static Dictionary<int, EveItemGroup> Groups { get; private set; }
+        public static Dictionary<int, EveItemType> Items { get; private set; }
+        public static Dictionary<int, EveMapRegion> Regions { get; private set; }
+        public static Dictionary<int, EveMapSolarSystem> SolarSystems { get; private set; }
+
         private static bool m_has_prices = false;
 
-        public static void Initialize()
+        /// <summary>
+        /// Initializes the EveTypes cache by reading static game information from the CCP database.
+        /// </summary>
+        /// <param name="connectionString">The connection string for the CCP database.</param>
+        public static void Initialize(string connectionString)
         {
-            SQLiteConnection conn = null;
-            SQLiteCommand cmd = null;
-            SQLiteDataAdapter adapter = null;
-            DataTable table;
-
             // create the dictionaries
-            m_categories = new Dictionary<long, EveItemCategory>(30);
-            m_groups = new Dictionary<long, EveItemGroup>(800);
-            m_items = new Dictionary<long, EveItemType>(17000);
+            Categories = new Dictionary<int, EveItemCategory>(30);
+            Groups = new Dictionary<int, EveItemGroup>(800);
+            Items = new Dictionary<int, EveItemType>(17000);
+            Regions = new Dictionary<int, EveMapRegion>(70);
+            SolarSystems = new Dictionary<int, EveMapSolarSystem>(5400);
 
-            try
+            using (SQLiteConnection conn = new SQLiteConnection(connectionString))
             {
                 // open connection
-                conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath);
                 conn.Open();
-                cmd = conn.CreateCommand();
-                adapter = new SQLiteDataAdapter(cmd);
 
-                // categories
-                cmd.CommandText = "SELECT * FROM invCategories";
-                table = new DataTable("Categories");
-                adapter.Fill(table);
-                foreach (DataRow row in table.Rows)
-                {
-                    EveItemCategory category = EveItemCategory.FromRow(row);
-                    m_categories[category.CategoryID] = category;
-                }
-                table.Dispose();
-
-                // groups
-                cmd.CommandText = "SELECT * FROM invGroups";
-                table = new DataTable("Groups");
-                adapter.Fill(table);
-                foreach (DataRow row in table.Rows)
-                {
-                    EveItemGroup group = EveItemGroup.FromRow(row);
-                    m_groups[group.GroupID] = group;
-                }
-                table.Dispose();
-
-                // items
-                cmd.CommandText = "SELECT * FROM invTypes";
-                table = new DataTable("Types");
-                adapter.Fill(table);
-                foreach (DataRow row in table.Rows)
-                {
-                    EveItemType type = EveItemType.FromRow(row);
-                    m_items[type.TypeID] = type;
-                }
-                table.Dispose();
+                // load each type into its dictionary
+                LoadEveType(conn, "SELECT * FROM invCategories", EveItemCategory.FromRow, Categories);
+                LoadEveType(conn, "SELECT * FROM invGroups", EveItemGroup.FromRow, Groups);
+                LoadEveType(conn, "SELECT * FROM invTypes", EveItemType.FromRow, Items);
+                LoadEveType(conn, "SELECT * FROM mapRegions", EveMapRegion.FromRow, Regions);
+                LoadEveType(conn, "SELECT * FROM mapSolarSystems", EveMapSolarSystem.FromRow, SolarSystems);
             }
-            finally
+        }
+
+        private delegate IEveType FromRowDelegate(DataRow row);
+        private delegate void LoadEveTypeCallback(IEveType item);
+
+        private static void LoadEveType<T>(SQLiteConnection conn, string sql, FromRowDelegate fromRow, IDictionary<int, T> dictionary) where T : IEveType
+        {
+            IEveType item;
+
+            using (DataTable table = new DataTable())
             {
-                if (adapter != null) adapter.Dispose();
-                if (cmd != null) cmd.Dispose();
-                if (conn != null) conn.Dispose();
+                using (SQLiteDataAdapter adapter = new SQLiteDataAdapter(sql, conn))
+                    adapter.Fill(table);
+
+                foreach (DataRow row in table.Rows)
+                {
+                    item = fromRow(row);
+                    dictionary[item.ID] = (T)item;
+                }
             }
         }
 
@@ -78,13 +67,13 @@ namespace HeavyDuck.Eve.AssetManager
         /// Sets market prices for item types.
         /// </summary>
         /// <param name="prices">A dictionary containing typeID and price pairs.</param>
-        public static void SetPrices(IDictionary<long, float> prices)
+        public static void SetPrices(IDictionary<int, float> prices)
         {
             EveItemType item;
 
-            foreach (KeyValuePair<long, float> price in prices)
+            foreach (KeyValuePair<int, float> price in prices)
             {
-                if (m_items.TryGetValue(price.Key, out item))
+                if (Items.TryGetValue(price.Key, out item))
                     item.MarketPrice = price.Value;
             }
 
@@ -98,27 +87,17 @@ namespace HeavyDuck.Eve.AssetManager
         {
             get { return m_has_prices; }
         }
+    }
 
-        public static Dictionary<long, EveItemCategory> Categories
-        {
-            get { return m_categories; }
-        }
-
-        public static Dictionary<long, EveItemGroup> Groups
-        {
-            get { return m_groups; }
-        }
-
-        public static Dictionary<long, EveItemType> Items
-        {
-            get { return m_items; }
-        }
+    public interface IEveType
+    {
+        int ID { get; }
     }
 
     /// <summary>
     /// Represents an EVE item category.
     /// </summary>
-    public class EveItemCategory
+    public class EveItemCategory : IEveType
     {
         public int CategoryID { get; private set; }
         public string CategoryName { get; private set; }
@@ -137,12 +116,14 @@ namespace HeavyDuck.Eve.AssetManager
         {
             return new EveItemCategory(row);
         }
+
+        int IEveType.ID { get { return CategoryID; } }
     }
 
     /// <summary>
     /// Represents an EVE item group.
     /// </summary>
-    public class EveItemGroup
+    public class EveItemGroup : IEveType
     {
         public int GroupID { get; private set; }
         public int CategoryID { get; private set; }
@@ -180,12 +161,14 @@ namespace HeavyDuck.Eve.AssetManager
         {
             return new EveItemGroup(row);
         }
+
+        int IEveType.ID { get { return GroupID; } }
     }
 
     /// <summary>
     /// Represents an EVE item type.
     /// </summary>
-    public class EveItemType
+    public class EveItemType : IEveType
     {
         public int TypeID { get; private set; }
         public int GroupID { get; private set; }
@@ -261,5 +244,72 @@ namespace HeavyDuck.Eve.AssetManager
         {
             return new EveItemType(row);
         }
+
+        int IEveType.ID { get { return TypeID; } }
+    }
+
+    /// <summary>
+    /// Represents an EVE region.
+    /// </summary>
+    public class EveMapRegion : IEveType
+    {
+        public int RegionID { get; private set; }
+        public string RegionName { get; private set; }
+        public int FactionID { get; private set; }
+        public float Radius { get; private set; }
+
+        private EveMapRegion(DataRow row)
+        {
+            RegionID = Convert.ToInt32(row["regionID"]);
+            RegionName = row["regionName"].ToString();
+            FactionID = row.IsNull("factionID") ? -1 : Convert.ToInt32(row["factionID"]);
+            Radius = Convert.ToSingle(row["radius"]);
+        }
+
+        public static EveMapRegion FromRow(DataRow row)
+        {
+            return new EveMapRegion(row);
+        }
+
+        int IEveType.ID { get { return RegionID; } }
+    }
+
+    /// <summary>
+    /// Represents an EVE solar system.
+    /// </summary>
+    public class EveMapSolarSystem : IEveType
+    {
+        public int SolarSystemID { get; private set; }
+        public string SolarSystemName { get; private set; }
+        public int ConstellationID { get; private set; }
+        public int RegionID { get; private set; }
+        public float Security { get; private set; }
+        public int FactionID { get; private set; }
+        public float Radius { get; private set; }
+        public string SecurityClass { get; private set; }
+
+        private EveMapSolarSystem(DataRow row)
+        {
+            SolarSystemID = Convert.ToInt32(row["solarSystemID"]);
+            SolarSystemName = Convert.ToString(row["solarSystemName"]);
+            ConstellationID = Convert.ToInt32(row["constellationID"]);
+            RegionID = Convert.ToInt32(row["regionID"]);
+            Security = Convert.ToSingle(row["security"]);
+            FactionID = row.IsNull("factionID") ? -1 : Convert.ToInt32(row["factionID"]);
+            Radius = Convert.ToSingle(row["radius"]);
+            SecurityClass = Convert.ToString(row["securityClass"]);
+        }
+
+        public EveMapRegion Region
+        {
+            get { return EveTypes.Regions[RegionID]; }
+        }
+
+        public static EveMapSolarSystem FromRow(DataRow row)
+        {
+            return new EveMapSolarSystem(row);
+        }
+
+        int IEveType.ID { get { return SolarSystemID; } }
     }
 }

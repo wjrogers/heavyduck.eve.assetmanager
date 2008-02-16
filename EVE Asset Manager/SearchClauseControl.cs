@@ -61,7 +61,7 @@ namespace HeavyDuck.Eve.AssetManager
         {
             DataTable table = new DataTable();
 
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath))
+            using (SQLiteConnection conn = new SQLiteConnection(Program.CcpDatabaseConnectionString))
             {
                 conn.Open();
 
