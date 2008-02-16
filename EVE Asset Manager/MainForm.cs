@@ -619,7 +619,29 @@ namespace HeavyDuck.Eve.AssetManager
                 dialog = new ProgressDialog();
                 dialog.AddTask(delegate(IProgressDialog p)
                 {
-                    p.Update(0, 2);
+                    p.Update(0, 3);
+
+                    // check that we have the latest pricing data
+                    p.Update("Updating prices...");
+                    CachedResult result = NonNinjaHelper.GetMediansTxt();
+                    Dictionary<long, NonNinjaMedians> medians;
+                    Dictionary<long, float> prices;
+                    if (result.IsUpdated || (!EveTypes.HasPrices && result.State != CacheState.Uncached))
+                    {
+                        medians = NonNinjaHelper.ParseMediansTxt(result.Path);
+                        prices = new Dictionary<long, float>(medians.Count);
+
+                        // convert to the format needed by the EveTypes helper
+                        foreach (KeyValuePair<long, NonNinjaMedians> pair in medians)
+                            prices[pair.Key] = pair.Value.SellMedian;
+
+                        EveTypes.SetPrices(prices);
+                    }
+                    else if (!EveTypes.HasPrices)
+                    {
+                        MessageBox.Show("Unable to retrieve market prices. Depending on your options, baseprices may be substituted.", "Pricing Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    p.Advance();
 
                     // create our clauses and get assets
                     p.Update("Querying assets...");

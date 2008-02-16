@@ -54,6 +54,7 @@
     </Compile>
     <Compile Include="AssetCache.cs" />
     <Compile Include="DataStore.cs" />
+    <Compile Include="EveTypes.cs" />
     <Compile Include="KeyManager.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -95,6 +95,9 @@ namespace HeavyDuck.Eve.AssetManager
                 MainForm.ShowException(null, "Failed to load your options.", ex);
             }
 
+            // initialize the eve types from the ccp database (if this fails, we got problems, so let it crash the app)
+            EveTypes.Initialize();
+
             // load keys and characters from disk
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
             LoadDataTable(m_characters, "characters.xml", "Failed to load your character list. You may need to reset your corp asset preferences.");

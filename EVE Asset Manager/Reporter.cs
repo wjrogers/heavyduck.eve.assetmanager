@@ -35,7 +35,7 @@ namespace HeavyDuck.Eve.AssetManager
             XmlWriter writer;
 
             // group by something
-            data = TableHelper.GroupBy(data, groupColumn + ", " + subGroupColumn + ", typeName, basePrice, portionSize", "quantity");
+            data = TableHelper.GroupBy(data, groupColumn + ", " + subGroupColumn + ", typeName, typeID", "quantity");
 
             // create a view with the sort we need
             view = new DataView(data, null, groupColumn + ", " + subGroupColumn + ", typeName", DataViewRowState.CurrentRows);
@@ -63,11 +63,9 @@ namespace HeavyDuck.Eve.AssetManager
                     // read some values
                     string group = row[groupColumn].ToString();
                     string subGroup = row[subGroupColumn].ToString();
-                    double basePrice = row["basePrice"] is DBNull ? 0 : Convert.ToDouble(row["basePrice"]);
-                    long portionSize = row["portionSize"] is DBNull ? 1 : Convert.ToInt64(row["portionSize"]);
+                    long typeID = Convert.ToInt64(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double portions = quantity / (double)portionSize;
-                    double value = portions * basePrice;
+                    double value = quantity * EveTypes.Items[typeID].CompositePrice;
 
                     // make group/subgroup names ??? if they are blank
                     if (string.IsNullOrEmpty(group)) group = "???";
@@ -300,13 +298,9 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable summary;
             DataRow summaryRow;
             DataView view, summaryView;
-            Dictionary<int, double> materialPrices;
 
             // remove all the rows we don't care about
             PruneTable(data, "categoryName = 'Material'");
-
-            // initialize the material price dict
-            materialPrices = new Dictionary<int, double>();
 
             // set up the summary data table
             summary = new DataTable("Material Summary");
@@ -346,33 +340,11 @@ namespace HeavyDuck.Eve.AssetManager
                     string group = row["groupName"].ToString();
                     string type = row["typeName"].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
-                    double value;
+                    long quantity = Convert.ToInt64(row["quantity"]);
+                    double value = quantity * EveTypes.Items[typeID].CompositePrice;
 
                     // tweak blank locations to say "???" instead
                     if (string.IsNullOrEmpty(location)) location = "???";
-                    
-                    // do value-calculation stuffs
-                    try
-                    {
-                        double tempValue;
-
-                        if (!materialPrices.ContainsKey(typeID))
-                        {
-                            // we don't have a price for this type yet, try to fetch it
-                            tempValue = EveCentralHelper.GetItemMarketStat(typeID, MarketStat.AvgSellPrice);
-
-                            // store this value, even if it's 0, in the thingy
-                            materialPrices[typeID] = tempValue;
-                        }
-                    }
-                    catch
-                    {
-                        // if any error occurs, make sure we don't repeatedly query this type by setting the cached value to 0
-                        materialPrices[typeID] = 0;
-                    }
-
-                    // set the value from the cache
-                    value = Convert.ToInt64(row["quantity"]) * materialPrices[typeID];
 
                     // check the big group
                     if (location != currentLocation)
@@ -402,7 +374,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // write the row
                     writer.WriteStartElement("tr");
-                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(row["quantity"]));
+                    WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", type);
                     WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
                     writer.WriteEndElement(); // tr
@@ -414,14 +386,14 @@ namespace HeavyDuck.Eve.AssetManager
                         summaryRow = summary.NewRow();
                         summaryRow["groupName"] = group;
                         summaryRow["typeName"] = type;
-                        summaryRow["quantity"] = row["quantity"];
+                        summaryRow["quantity"] = quantity;
                         summaryRow["value"] = value;
 
                         summary.Rows.Add(summaryRow);
                     }
                     else
                     {
-                        summaryRow["quantity"] = Convert.ToInt64(summaryRow["quantity"]) + Convert.ToInt64(row["quantity"]);
+                        summaryRow["quantity"] = Convert.ToInt64(summaryRow["quantity"]) + quantity;
                         summaryRow["value"] = Convert.ToDouble(summaryRow["value"]) + value;
                     }
                 }
