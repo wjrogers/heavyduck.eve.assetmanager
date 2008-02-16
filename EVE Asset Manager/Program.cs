@@ -96,7 +96,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // initialize the eve types from the ccp database (if this fails, we got problems, so let it crash the app)
-            EveTypes.Initialize();
+            EveTypes.Initialize(CcpDatabaseConnectionString);
 
             // load keys and characters from disk
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
@@ -144,6 +144,11 @@ namespace HeavyDuck.Eve.AssetManager
         public static string CcpDatabasePath
         {
             get { return m_ccpDbPath; }
+        }
+
+        public static string CcpDatabaseConnectionString
+        {
+            get { return "Data Source=" + m_ccpDbPath; }
         }
 
         public static OptionsDialog OptionsDialog

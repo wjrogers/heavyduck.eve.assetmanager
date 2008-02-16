@@ -63,7 +63,7 @@ namespace HeavyDuck.Eve.AssetManager
                     // read some values
                     string group = row[groupColumn].ToString();
                     string subGroup = row[subGroupColumn].ToString();
-                    long typeID = Convert.ToInt64(row["typeID"]);
+                    int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
                     double value = quantity * EveTypes.Items[typeID].CompositePrice;
 
@@ -484,7 +484,7 @@ namespace HeavyDuck.Eve.AssetManager
             DataTable fuelData;
 
             // first, query the fuel data from the static db
-            using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath))
+            using (SQLiteConnection conn = new SQLiteConnection(Program.CcpDatabaseConnectionString))
             {
                 conn.Open();
                 fuelData = new DataTable("Fuel Data");
@@ -535,7 +535,7 @@ namespace HeavyDuck.Eve.AssetManager
                         decimal security;
 
                         // get the factionID and security level of the solar system
-                        using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + Program.CcpDatabasePath))
+                        using (SQLiteConnection conn = new SQLiteConnection(Program.CcpDatabaseConnectionString))
                         {
                             conn.Open();
 
