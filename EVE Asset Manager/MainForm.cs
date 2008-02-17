@@ -623,7 +623,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                     // check that we have the latest pricing data
                     p.Update("Updating prices...");
-                    CachedResult result = NonNinjaHelper.GetMediansTxt();
+                    CachedResult result = NonNinjaHelper.GetMediansTxt(10000002);
                     Dictionary<int, NonNinjaMedians> medians;
                     Dictionary<int, float> prices;
                     if (result.IsUpdated || (!EveTypes.HasPrices && result.State != CacheState.Uncached))
