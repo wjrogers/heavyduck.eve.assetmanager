@@ -37,7 +37,6 @@ namespace HeavyDuck.Eve.AssetManager
             this.Load += new EventHandler(MainForm_Load);
             this.Shown += new EventHandler(MainForm_Shown);
             this.KeyDown += new KeyEventHandler(MainForm_KeyDown);
-            this.KeyUp += new KeyEventHandler(MainForm_KeyUp);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_export.Click += new EventHandler(menu_file_export_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
@@ -118,15 +117,6 @@ namespace HeavyDuck.Eve.AssetManager
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
-        {
-            // prevent the bonk sound when hitting enter on a search control
-            if (e.KeyCode == Keys.Enter && this.ActiveControl is SearchClauseControl)
-            {
-                e.SuppressKeyPress = true;
-            }
-        }
-
-        private void MainForm_KeyUp(object sender, KeyEventArgs e)
         {
             // auto-hook enter on a search control to mean query
             if (e.KeyCode == Keys.Enter && this.ActiveControl is SearchClauseControl)
