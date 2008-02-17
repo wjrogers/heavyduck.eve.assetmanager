@@ -376,7 +376,7 @@ namespace HeavyDuck.Eve.AssetManager
                     writer.WriteStartElement("tr");
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", type);
-                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
+                    WriteElementRawWithClass(writer, "td", "r", FormatIskValue(value));
                     writer.WriteEndElement(); // tr
 
                     // sum
@@ -436,7 +436,7 @@ namespace HeavyDuck.Eve.AssetManager
                     writer.WriteStartElement("tr");
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", type);
-                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
+                    WriteElementRawWithClass(writer, "td", "r", FormatIskValue(value));
                     writer.WriteEndElement(); // tr
                 }
 
@@ -461,14 +461,14 @@ namespace HeavyDuck.Eve.AssetManager
                     writer.WriteStartElement("tr");
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", group);
-                    WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(value));
+                    WriteElementRawWithClass(writer, "td", "r", FormatIskValue(value));
                     writer.WriteEndElement(); // tr
                 }
                 writer.WriteStartElement("tr");
                 writer.WriteAttributeString("class", "bold");
                 WriteElementStringWithClass(writer, "td", "r", FormatInt64(totalItems));
                 writer.WriteElementString("td", "All Materials");
-                WriteElementRawWithClass(writer, "td", "r", FormatMaterialValue(totalValue));
+                WriteElementRawWithClass(writer, "td", "r", FormatIskValue(totalValue));
                 writer.WriteEndElement(); // tr
 
                 // finish
@@ -510,7 +510,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // grouping info
                 string currentTower = null;
-                Dictionary<long, long> itemCounts = new Dictionary<long, long>();
+                Dictionary<int, long> itemCounts = new Dictionary<int, long>();
                 DataRow[] fuelRows = null;
 
                 // loopity
@@ -518,7 +518,7 @@ namespace HeavyDuck.Eve.AssetManager
                 {
                     // read data
                     string tower = row["containerName"].ToString();
-                    long typeID = Convert.ToInt64(row["typeID"]);
+                    int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
                     
                     // group
@@ -529,8 +529,8 @@ namespace HeavyDuck.Eve.AssetManager
 
                         // read a couple more pieces of data about the new tower
                         string location = row["locationName"].ToString();
-                        long locationID = Convert.ToInt64(row["locationID"]);
-                        long towerTypeID = Convert.ToInt64(row["containerTypeID"]);
+                        int locationID = Convert.ToInt32(row["locationID"]);
+                        int towerTypeID = Convert.ToInt32(row["containerTypeID"]);
                         long? factionID;
                         decimal security;
 
@@ -559,14 +559,14 @@ namespace HeavyDuck.Eve.AssetManager
 
                         // switch to the new tower
                         currentTower = tower;
-                        itemCounts = new Dictionary<long, long>();
+                        itemCounts = new Dictionary<int, long>();
                         fuelRows = fuelData.Select(filter.ToString(), "purpose, minSecurityLevel, typeName");
 
                         // write the big name header
                         writer.WriteStartElement("tr");
                         writer.WriteAttributeString("class", "group");
                         writer.WriteStartElement("th");
-                        writer.WriteAttributeString("colspan", "5");
+                        writer.WriteAttributeString("colspan", "6");
                         writer.WriteRaw(string.Format("<span class=\"l\">{0}</span> / {1}", string.IsNullOrEmpty(location) ? "???" : location, tower));
                         writer.WriteEndElement(); // th
                         writer.WriteEndElement(); // tr
@@ -588,26 +588,34 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private static void WritePosReportGroup(XmlWriter writer, Dictionary<long, long> itemCounts, DataRow[] fuelRows)
+        private static void WritePosReportGroup(XmlWriter writer, Dictionary<int, long> itemCounts, DataRow[] fuelRows)
         {
             Dictionary<string, TimeSpan> minDurations = new Dictionary<string, TimeSpan>();
+            Dictionary<string, double> totalCosts = new Dictionary<string, double>();
 
             // the fuel group header
-            WriteSubGroupRow(writer, "Fuel", 5);
+            WriteSubGroupRow(writer, "Fuel", 6);
 
             // write a row for each type of fuel the POS requires
             foreach (DataRow fuelRow in fuelRows)
             {
-                long fuelTypeID = Convert.ToInt64(fuelRow["resourceTypeID"]);
+                int fuelTypeID = Convert.ToInt32(fuelRow["resourceTypeID"]);
                 string fuelName = fuelRow["typeName"].ToString();
                 string fuelPurposeText = fuelRow["purposeText"].ToString();
-                int fuelQuantity = Convert.ToInt32(fuelRow["quantity"]);
+                long fuelQuantity = Convert.ToInt64(fuelRow["quantity"]);
                 long quantity = itemCounts.ContainsKey(fuelTypeID) ? itemCounts[fuelTypeID] : 0;
+                double fuelValue = fuelQuantity * EveTypes.Items[fuelTypeID].CompositePrice * 24;
                 TimeSpan duration = TimeSpan.FromHours(quantity / (double)fuelQuantity);
 
                 // keep track of the minimum run-time for each need
                 if (!minDurations.ContainsKey(fuelPurposeText) || duration < minDurations[fuelPurposeText])
                     minDurations[fuelPurposeText] = duration;
+
+                // keep track of the total cost of each purpose
+                if (!totalCosts.ContainsKey(fuelPurposeText))
+                    totalCosts[fuelPurposeText] = fuelValue;
+                else
+                    totalCosts[fuelPurposeText] += fuelValue;
 
                 // write the row
                 writer.WriteStartElement("tr");
@@ -616,12 +624,13 @@ namespace HeavyDuck.Eve.AssetManager
                 writer.WriteElementString("td", fuelName);
                 writer.WriteElementString("td", fuelPurposeText);
                 WriteElementRawWithClass(writer, "td", "r", FormatInt32(fuelQuantity) + "<small>/hour</small>");
+                WriteElementRawWithClass(writer, "td", "r", FormatIskValue(fuelValue) + "<small>/day</small>");
                 WriteElementRawWithClass(writer, "td", "r", FormatTimeSpan(duration));
                 writer.WriteEndElement(); // tr
             }
 
             // the group header
-            WriteSubGroupRow(writer, "Run Time Summary", 5);
+            WriteSubGroupRow(writer, "Run Time Summary", 6);
 
             // write a row for each purpose as a summary
             foreach (string purpose in minDurations.Keys)
@@ -633,6 +642,7 @@ namespace HeavyDuck.Eve.AssetManager
                 writer.WriteAttributeString("colspan", "3");
                 writer.WriteString(purpose);
                 writer.WriteEndElement(); // td
+                WriteElementRawWithClass(writer, "td", "r", FormatIskValue(totalCosts[purpose]) + "<small>/day</small>");
                 WriteElementRawWithClass(writer, "td", "r", FormatTimeSpan(minDurations[purpose]));
                 writer.WriteEndElement(); // tr
             }
@@ -787,7 +797,7 @@ namespace HeavyDuck.Eve.AssetManager
             return Convert.ToDouble(value).ToString("#,##0.000");
         }
 
-        private static string FormatMaterialValue(double value)
+        private static string FormatIskValue(double value)
         {
             if (value == 0)
                 return QUESTION_HTML;
