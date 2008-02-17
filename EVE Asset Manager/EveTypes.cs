@@ -225,7 +225,12 @@ namespace HeavyDuck.Eve.AssetManager
                 else if (m_marketPrice.HasValue)
                     return m_marketPrice.Value;
                 else if (Group.UseBasePrice && Program.OptionsDialog["Pricing.UseBasePrice"].ValueAsBoolean)
-                    return BasePrice / PortionSize;
+                {
+                    if (Program.OptionsDialog["Pricing.CorrectBasePrice"].ValueAsBoolean && Category.CategoryName == "Structure" && Group.GroupName != "Control Tower")
+                        return (BasePrice * 0.9f) / PortionSize;
+                    else
+                        return BasePrice / PortionSize;
+                }
                 else
                     return 0f;
             }
