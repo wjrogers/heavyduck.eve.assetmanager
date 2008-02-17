@@ -48,7 +48,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // start the document
                 WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
-                WritePriceDisclaimerBasePrice(writer);
+                WritePriceDisclaimer(writer);
                 writer.WriteStartElement("table");
 
                 // grouping variables
@@ -325,7 +325,7 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // start writing
                 WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
-                WritePriceDisclaimerEveCentral(writer);
+                WritePriceDisclaimer(writer);
                 writer.WriteStartElement("table");
 
                 // the stuff for grouping
@@ -746,19 +746,11 @@ namespace HeavyDuck.Eve.AssetManager
             WriteElementStringWithClass(writer, "td", "s", " ");
         }
 
-        private static void WritePriceDisclaimerBasePrice(XmlWriter writer)
+        private static void WritePriceDisclaimer(XmlWriter writer)
         {
             writer.WriteStartElement("p");
             writer.WriteElementString("strong", "Note: ");
-            writer.WriteString("prices in this report are the baseprice of the module and may not be representative of actual market value.");
-            writer.WriteEndElement();
-        }
-
-        private static void WritePriceDisclaimerEveCentral(XmlWriter writer)
-        {
-            writer.WriteStartElement("p");
-            writer.WriteElementString("strong", "Note: ");
-            writer.WriteRaw("prices in this report use the <tt>avg_sell_price</tt> field from <a href=\"http://eve-central.com/\">EVE-Central</a>, limited to region The Forge.");
+            writer.WriteRaw("Prices in this report use the median sell price from <a href=\"http://nonninja.net/eve/prices/\">Bellatroix&rsquo;s Median Price Feeds</a> for region The Forge, which is based on data collected by <a href=\"http://eve-central.com/\">EVE-Central</a>. If market data is not available, baseprices may be substituted, depending on your options.");
             writer.WriteEndElement();
         }
 
