@@ -65,7 +65,7 @@ namespace HeavyDuck.Eve.AssetManager
                     string subGroup = row[subGroupColumn].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = quantity * EveTypes.Items[typeID].CompositePrice;
+                    double value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
 
                     // make group/subgroup names ??? if they are blank
                     if (string.IsNullOrEmpty(group)) group = "???";
@@ -341,7 +341,7 @@ namespace HeavyDuck.Eve.AssetManager
                     string type = row["typeName"].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = quantity * EveTypes.Items[typeID].CompositePrice;
+                    double value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
 
                     // tweak blank locations to say "???" instead
                     if (string.IsNullOrEmpty(location)) location = "???";
@@ -604,7 +604,7 @@ namespace HeavyDuck.Eve.AssetManager
                 string fuelPurposeText = fuelRow["purposeText"].ToString();
                 long fuelQuantity = Convert.ToInt64(fuelRow["quantity"]);
                 long quantity = itemCounts.ContainsKey(fuelTypeID) ? itemCounts[fuelTypeID] : 0;
-                double fuelValue = fuelQuantity * EveTypes.Items[fuelTypeID].CompositePrice * 24;
+                double fuelValue = fuelQuantity * Program.GetCompositePrice(EveTypes.Items[fuelTypeID]) * 24;
                 TimeSpan duration = TimeSpan.FromHours(quantity / (double)fuelQuantity);
 
                 // keep track of the minimum run-time for each need

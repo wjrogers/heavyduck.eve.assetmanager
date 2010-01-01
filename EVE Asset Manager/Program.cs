@@ -24,6 +24,7 @@ namespace HeavyDuck.Eve.AssetManager
         private static DataTable m_keys;
         private static DataTable m_characters;
         private static OptionsDialog m_options;
+        private static IPriceProvider m_priceProvider = EveCentralHelper.Instance;
 
         /// <summary>
         /// The main entry point for the application.
@@ -156,9 +157,58 @@ namespace HeavyDuck.Eve.AssetManager
             get { return m_options; }
         }
 
+        public static IPriceProvider PriceProvider
+        {
+            get { return m_priceProvider; }
+        }
+
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Gets an item's price, as determined by market data and current user options.
+        /// </summary>
+        public static double GetCompositePrice(EveItemType type)
+        {
+            double marketPrice;
+
+            if (type.Category.CategoryName == "Blueprint" && Program.OptionsDialog["Pricing.ZeroBlueprints"].ValueAsBoolean)
+                return 0;
+            else if (TryGetMarketPrice(type.TypeID, out marketPrice))
+                return marketPrice;
+            else if (type.Group.UseBasePrice && Program.OptionsDialog["Pricing.UseBasePrice"].ValueAsBoolean)
+            {
+                if (Program.OptionsDialog["Pricing.CorrectBasePrice"].ValueAsBoolean && type.Category.CategoryName == "Structure" && type.Group.GroupName != "Control Tower")
+                    return (type.BasePrice * 0.9f) / type.PortionSize;
+                else
+                    return type.BasePrice / type.PortionSize;
+            }
+            else
+                return 0f;
+        }
+
+        /// <summary>
+        /// Try to get a market price for an item type.
+        /// </summary>
+        /// <param name="typeID">The item type to price.</param>
+        /// <param name="marketPrice">(output) The market price, if it was found.</param>
+        /// <returns>True if a price was found; otherwise, false.</returns>
+        public static bool TryGetMarketPrice(int typeID, out double marketPrice)
+        {
+            try
+            {
+                // try to get a price
+                marketPrice = PriceProvider.GetPrice(typeID, PriceStat.Median);
+                return true;
+            }
+            catch
+            {
+                // we didn't get a price
+                marketPrice = 0;
+                return false;
+            }
+        }
 
         public static void RefreshCharacters()
         {

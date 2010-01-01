@@ -14,8 +14,6 @@ namespace HeavyDuck.Eve.AssetManager
         public static Dictionary<int, EveMapRegion> Regions { get; private set; }
         public static Dictionary<int, EveMapSolarSystem> SolarSystems { get; private set; }
 
-        private static bool m_has_prices = false;
-
         /// <summary>
         /// Initializes the EveTypes cache by reading static game information from the CCP database.
         /// </summary>
@@ -61,31 +59,6 @@ namespace HeavyDuck.Eve.AssetManager
                     dictionary[item.ID] = (T)item;
                 }
             }
-        }
-
-        /// <summary>
-        /// Sets market prices for item types.
-        /// </summary>
-        /// <param name="prices">A dictionary containing typeID and price pairs.</param>
-        public static void SetPrices(IDictionary<int, float> prices)
-        {
-            EveItemType item;
-
-            foreach (KeyValuePair<int, float> price in prices)
-            {
-                if (Items.TryGetValue(price.Key, out item))
-                    item.MarketPrice = price.Value;
-            }
-
-            m_has_prices = true;
-        }
-
-        /// <summary>
-        /// Gets a value that indicates whether any market prices have been loaded.
-        /// </summary>
-        public static bool HasPrices
-        {
-            get { return m_has_prices; }
         }
     }
 
@@ -184,8 +157,6 @@ namespace HeavyDuck.Eve.AssetManager
         public int MarketGroupID { get; private set; }
         public bool Published { get; private set; }
 
-        private float? m_marketPrice = null;
-
         private EveItemType(DataRow row)
         {
             TypeID = Convert.ToInt32(row["typeID"]);
@@ -211,38 +182,6 @@ namespace HeavyDuck.Eve.AssetManager
         public EveItemCategory Category
         {
             get { return Group.Category; }
-        }
-
-        /// <summary>
-        /// Gets the item's price, as determined by market data and current user options.
-        /// </summary>
-        public float CompositePrice
-        {
-            get
-            {
-                if (Category.CategoryName == "Blueprint" && Program.OptionsDialog["Pricing.ZeroBlueprints"].ValueAsBoolean)
-                    return 0f;
-                else if (m_marketPrice.HasValue)
-                    return m_marketPrice.Value;
-                else if (Group.UseBasePrice && Program.OptionsDialog["Pricing.UseBasePrice"].ValueAsBoolean)
-                {
-                    if (Program.OptionsDialog["Pricing.CorrectBasePrice"].ValueAsBoolean && Category.CategoryName == "Structure" && Group.GroupName != "Control Tower")
-                        return (BasePrice * 0.9f) / PortionSize;
-                    else
-                        return BasePrice / PortionSize;
-                }
-                else
-                    return 0f;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the market value of this item.
-        /// </summary>
-        public float? MarketPrice
-        {
-            get { return m_marketPrice; }
-            set { m_marketPrice = value; }
         }
 
         public static EveItemType FromRow(DataRow row)
