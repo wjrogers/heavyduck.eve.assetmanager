@@ -55,6 +55,8 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            const string numberFormat = "#,##0";
+
             // create the grid
             grid = new DoubleBufferedDataGridView();
             grid.Dock = DockStyle.Fill;
@@ -77,15 +79,15 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "_marketPriceUnit", "Market Price");
             GridHelper.AddColumn(grid, "_marketPriceTotal", "Market Price (Total)");
             grid.Columns["quantity"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            grid.Columns["quantity"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["quantity"].DefaultCellStyle.Format = numberFormat;
             grid.Columns["basePrice"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            grid.Columns["basePrice"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["basePrice"].DefaultCellStyle.Format = numberFormat;
             grid.Columns["metaLevel"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["itemID"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["_marketPriceUnit"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            grid.Columns["_marketPriceUnit"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["_marketPriceUnit"].DefaultCellStyle.Format = numberFormat;
             grid.Columns["_marketPriceTotal"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            grid.Columns["_marketPriceTotal"].DefaultCellStyle.Format = "#,##0";
+            grid.Columns["_marketPriceTotal"].DefaultCellStyle.Format = numberFormat;
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
             // the label for counting assets
@@ -828,53 +830,6 @@ namespace HeavyDuck.Eve.AssetManager
             // yay
             m_assets = AssetCache.GetAssetTable(m_clauses);
             m_assets.DefaultView.Sort = "typeName ASC";
-
-            // add pricing columns
-            DataColumn columnTypeID = m_assets.Columns["typeID"];
-            DataColumn columnMarketPriceUnit = m_assets.Columns.Add("_marketPriceUnit", typeof(decimal));
-            m_assets.Columns.Add("_marketPriceTotal", typeof(decimal), "quantity * _marketPriceUnit");
-
-            // set them?
-            try
-            {
-                Dictionary<int, List<DataRow>> index_rows = new Dictionary<int, List<DataRow>>();
-                Dictionary<int, decimal> index_prices;
-
-                // update dialog
-                dialog.Update("Updating market prices...", 1, 2);
-
-                // discover all typeIDs, index rows by them
-                foreach (DataRow row in m_assets.Rows)
-                {
-                    List<DataRow> list;
-                    int typeID = Convert.ToInt32(row[columnTypeID]);
-
-                    if (!index_rows.TryGetValue(typeID, out list))
-                    {
-                        list = new List<DataRow>();
-                        index_rows[typeID] = list;
-                    }
-
-                    list.Add(row);
-                }
-
-                // get prices
-                index_prices = Program.PriceProvider.GetPrices(index_rows.Keys, PriceStat.Median);
-
-                // assign them to the rows
-                foreach (KeyValuePair<int, decimal> price in index_prices)
-                {
-                    foreach (DataRow row in index_rows[price.Key])
-                        row[columnMarketPriceUnit] = price.Value;
-                }
-
-                // accept changes
-                m_assets.AcceptChanges();
-            }
-            catch (Exception ex)
-            {
-                ShowException(null, "Failed to update market prices. No price information is available for reporting.", ex);
-            }
 
             // complete progress
             dialog.Advance();

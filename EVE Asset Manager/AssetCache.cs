@@ -223,6 +223,50 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
 
+            // add pricing columns
+            DataColumn columnTypeID = table.Columns["typeID"];
+            DataColumn columnMarketPriceUnit = table.Columns.Add("_marketPriceUnit", typeof(decimal));
+            table.Columns.Add("_marketPriceTotal", typeof(decimal), "quantity * _marketPriceUnit");
+
+            // set them?
+            try
+            {
+                Dictionary<int, List<DataRow>> index_rows = new Dictionary<int, List<DataRow>>();
+                Dictionary<int, decimal> index_prices;
+
+                // discover all typeIDs, index rows by them
+                foreach (DataRow row in table.Rows)
+                {
+                    List<DataRow> list;
+                    int typeID = Convert.ToInt32(row[columnTypeID]);
+
+                    if (!index_rows.TryGetValue(typeID, out list))
+                    {
+                        list = new List<DataRow>();
+                        index_rows[typeID] = list;
+                    }
+
+                    list.Add(row);
+                }
+
+                // get prices
+                index_prices = Program.PriceProvider.GetPrices(index_rows.Keys, PriceStat.Median);
+
+                // assign them to the rows
+                foreach (KeyValuePair<int, decimal> price in index_prices)
+                {
+                    foreach (DataRow row in index_rows[price.Key])
+                        row[columnMarketPriceUnit] = price.Value;
+                }
+
+                // accept changes
+                table.AcceptChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.ToString());
+            }
+
             return table;
         }
 
