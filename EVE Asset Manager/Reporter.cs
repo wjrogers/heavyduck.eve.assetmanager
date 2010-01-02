@@ -65,7 +65,8 @@ namespace HeavyDuck.Eve.AssetManager
                     string subGroup = row[subGroupColumn].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
+                    decimal? marketPrice = TableHelper.GetNullableValue<decimal>(row["_marketPriceUnit"]);
+                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID], marketPrice);
 
                     // make group/subgroup names ??? if they are blank
                     if (string.IsNullOrEmpty(group)) group = "???";
@@ -341,7 +342,8 @@ namespace HeavyDuck.Eve.AssetManager
                     string type = row["typeName"].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
+                    decimal? marketPrice = TableHelper.GetNullableValue<decimal>(row["_marketPriceUnit"]);
+                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID], marketPrice);
 
                     // tweak blank locations to say "???" instead
                     if (string.IsNullOrEmpty(location)) location = "???";
@@ -490,9 +492,14 @@ namespace HeavyDuck.Eve.AssetManager
                 conn.Open();
                 fuelData = new DataTable("Fuel Data");
 
+                // query fuels
                 using (SQLiteDataAdapter adapter = new SQLiteDataAdapter("SELECT * FROM invControlTowerResources r JOIN invControlTowerResourcePurposes p ON p.purpose = r.purpose JOIN invTypes t ON t.typeID = r.resourceTypeID", conn))
                     adapter.Fill(fuelData);
 
+                // load fuel prices
+                AssetCache.LoadMarketPrices(fuelData, fuelData.Columns["resourceTypeID"], null);
+
+                // set primary key
                 fuelData.PrimaryKey = new DataColumn[] { fuelData.Columns["controlTowerTypeID"], fuelData.Columns["resourceTypeID"] };
             }
 
@@ -605,7 +612,8 @@ namespace HeavyDuck.Eve.AssetManager
                 string fuelPurposeText = fuelRow["purposeText"].ToString();
                 long fuelQuantity = Convert.ToInt64(fuelRow["quantity"]);
                 long quantity = itemCounts.ContainsKey(fuelTypeID) ? itemCounts[fuelTypeID] : 0;
-                decimal fuelValue = fuelQuantity * Program.GetCompositePrice(EveTypes.Items[fuelTypeID]) * 24;
+                decimal? fuelMarketPrice = TableHelper.GetNullableValue<decimal>(fuelRow["_marketPriceUnit"]);
+                decimal fuelValue = fuelQuantity * Program.GetCompositePrice(EveTypes.Items[fuelTypeID], fuelMarketPrice) * 24;
                 TimeSpan duration = TimeSpan.FromHours(quantity / (double)fuelQuantity);
 
                 // keep track of the minimum run-time for each need

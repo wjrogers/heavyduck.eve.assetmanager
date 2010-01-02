@@ -175,14 +175,12 @@ namespace HeavyDuck.Eve.AssetManager
         /// <summary>
         /// Gets an item's price, as determined by market data and current user options.
         /// </summary>
-        public static decimal GetCompositePrice(EveItemType type)
+        public static decimal GetCompositePrice(EveItemType type, decimal? marketPrice)
         {
-            decimal marketPrice;
-
             if (type.Category.CategoryName == "Blueprint" && Program.OptionsDialog["Pricing.ZeroBlueprints"].ValueAsBoolean)
                 return 0;
-            else if (TryGetMarketPrice(type.TypeID, out marketPrice))
-                return marketPrice;
+            else if (marketPrice.HasValue)
+                return marketPrice.Value;
             else if (type.Group.UseBasePrice && Program.OptionsDialog["Pricing.UseBasePrice"].ValueAsBoolean)
             {
                 if (Program.OptionsDialog["Pricing.CorrectBasePrice"].ValueAsBoolean && type.Category.CategoryName == "Structure" && type.Group.GroupName != "Control Tower")
@@ -192,28 +190,6 @@ namespace HeavyDuck.Eve.AssetManager
             }
             else
                 return 0m;
-        }
-
-        /// <summary>
-        /// Try to get a market price for an item type.
-        /// </summary>
-        /// <param name="typeID">The item type to price.</param>
-        /// <param name="marketPrice">(output) The market price, if it was found.</param>
-        /// <returns>True if a price was found; otherwise, false.</returns>
-        public static bool TryGetMarketPrice(int typeID, out decimal marketPrice)
-        {
-            try
-            {
-                // try to get a price
-                marketPrice = PriceProvider.GetPrice(typeID, PriceStat.Median);
-                return true;
-            }
-            catch
-            {
-                // we didn't get a price
-                marketPrice = 0;
-                return false;
-            }
         }
 
         public static void RefreshCharacters()

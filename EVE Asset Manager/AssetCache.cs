@@ -224,9 +224,16 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // add pricing columns
-            DataColumn columnTypeID = table.Columns["typeID"];
-            DataColumn columnMarketPriceUnit = table.Columns.Add("_marketPriceUnit", typeof(decimal));
-            table.Columns.Add("_marketPriceTotal", typeof(decimal), "quantity * _marketPriceUnit");
+            LoadMarketPrices(table, table.Columns["typeID"], "quantity");
+
+            return table;
+        }
+
+        public static void LoadMarketPrices(DataTable data, DataColumn columnTypeID, string quantityExpression)
+        {
+            DataColumn columnMarketPriceUnit = data.Columns.Add("_marketPriceUnit", typeof(decimal));
+            if (!string.IsNullOrEmpty(quantityExpression))
+                data.Columns.Add("_marketPriceTotal", typeof(decimal), quantityExpression + " * _marketPriceUnit");
 
             // set them?
             try
@@ -235,7 +242,7 @@ namespace HeavyDuck.Eve.AssetManager
                 Dictionary<int, decimal> index_prices;
 
                 // discover all typeIDs, index rows by them
-                foreach (DataRow row in table.Rows)
+                foreach (DataRow row in data.Rows)
                 {
                     List<DataRow> list;
                     int typeID = Convert.ToInt32(row[columnTypeID]);
@@ -260,14 +267,12 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // accept changes
-                table.AcceptChanges();
+                data.AcceptChanges();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex.ToString());
             }
-
-            return table;
         }
 
         public static void ParseAssets(string filePath, string characterName)
