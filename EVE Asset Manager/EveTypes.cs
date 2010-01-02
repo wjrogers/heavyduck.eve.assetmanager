@@ -153,7 +153,7 @@ namespace HeavyDuck.Eve.AssetManager
         public float Capacity { get; private set; }
         public int PortionSize { get; private set; }
         public int RaceID { get; private set; }
-        public float BasePrice { get; private set; }
+        public decimal BasePrice { get; private set; }
         public int MarketGroupID { get; private set; }
         public bool Published { get; private set; }
 
@@ -169,7 +169,7 @@ namespace HeavyDuck.Eve.AssetManager
             Capacity = Convert.ToSingle(row["capacity"]);
             PortionSize = Convert.ToInt32(row["portionSize"]);
             RaceID = row.IsNull("raceID") ? -1 : Convert.ToInt32(row["raceID"]);
-            BasePrice = Convert.ToSingle(row["basePrice"]);
+            BasePrice = Convert.ToDecimal(row["basePrice"]);
             MarketGroupID = row.IsNull("marketGroupID") ? -1 : Convert.ToInt32(row["marketGroupID"]);
             Published = Convert.ToBoolean(row["published"]);
         }

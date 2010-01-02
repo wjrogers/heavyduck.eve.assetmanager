@@ -103,6 +103,9 @@ namespace HeavyDuck.Eve.AssetManager
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
             LoadDataTable(m_characters, "characters.xml", "Failed to load your character list. You may need to reset your corp asset preferences.");
 
+            // load price provider cache
+            m_priceProvider.LoadCache();
+
             // start the UI
             Application.Run(new MainForm());
 
@@ -123,6 +126,9 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 MainForm.ShowException(null, "Failed to save your options.", ex);
             }
+
+            // save price provider cache
+            m_priceProvider.SaveCache();
         }
 
         #region Public Properties
@@ -169,9 +175,9 @@ namespace HeavyDuck.Eve.AssetManager
         /// <summary>
         /// Gets an item's price, as determined by market data and current user options.
         /// </summary>
-        public static double GetCompositePrice(EveItemType type)
+        public static decimal GetCompositePrice(EveItemType type)
         {
-            double marketPrice;
+            decimal marketPrice;
 
             if (type.Category.CategoryName == "Blueprint" && Program.OptionsDialog["Pricing.ZeroBlueprints"].ValueAsBoolean)
                 return 0;
@@ -180,12 +186,12 @@ namespace HeavyDuck.Eve.AssetManager
             else if (type.Group.UseBasePrice && Program.OptionsDialog["Pricing.UseBasePrice"].ValueAsBoolean)
             {
                 if (Program.OptionsDialog["Pricing.CorrectBasePrice"].ValueAsBoolean && type.Category.CategoryName == "Structure" && type.Group.GroupName != "Control Tower")
-                    return (type.BasePrice * 0.9f) / type.PortionSize;
+                    return (type.BasePrice * 0.9m) / type.PortionSize;
                 else
                     return type.BasePrice / type.PortionSize;
             }
             else
-                return 0f;
+                return 0m;
         }
 
         /// <summary>
@@ -194,7 +200,7 @@ namespace HeavyDuck.Eve.AssetManager
         /// <param name="typeID">The item type to price.</param>
         /// <param name="marketPrice">(output) The market price, if it was found.</param>
         /// <returns>True if a price was found; otherwise, false.</returns>
-        public static bool TryGetMarketPrice(int typeID, out double marketPrice)
+        public static bool TryGetMarketPrice(int typeID, out decimal marketPrice)
         {
             try
             {

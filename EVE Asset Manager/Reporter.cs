@@ -55,7 +55,7 @@ namespace HeavyDuck.Eve.AssetManager
                 string currentGroup = null;
                 string currentSubGroup = null;
                 Dictionary<string, long> quantityTotals = null;
-                Dictionary<string, double> valueTotals = null;
+                Dictionary<string, decimal> valueTotals = null;
 
                 // loop through the rows
                 foreach (DataRowView row in view)
@@ -65,7 +65,7 @@ namespace HeavyDuck.Eve.AssetManager
                     string subGroup = row[subGroupColumn].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
+                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
 
                     // make group/subgroup names ??? if they are blank
                     if (string.IsNullOrEmpty(group)) group = "???";
@@ -81,7 +81,7 @@ namespace HeavyDuck.Eve.AssetManager
                         currentGroup = group;
                         currentSubGroup = null;
                         quantityTotals = new Dictionary<string, long>();
-                        valueTotals = new Dictionary<string, double>();
+                        valueTotals = new Dictionary<string, decimal>();
 
                         // write the group row
                         writer.WriteStartElement("tr");
@@ -115,7 +115,7 @@ namespace HeavyDuck.Eve.AssetManager
                     writer.WriteStartElement("tr");
                     WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantity));
                     writer.WriteElementString("td", row["typeName"].ToString());
-                    WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(value));
+                    WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDecimal1(value));
                     writer.WriteEndElement();
                 }
 
@@ -128,11 +128,11 @@ namespace HeavyDuck.Eve.AssetManager
             }
         }
 
-        private static void WriteGenericTotalRows(XmlWriter writer, IEnumerable<string> items, IDictionary<string, long> quantityTotals, IDictionary<string, double> valueTotals)
+        private static void WriteGenericTotalRows(XmlWriter writer, IEnumerable<string> items, IDictionary<string, long> quantityTotals, IDictionary<string, decimal> valueTotals)
         {
             List<string> sorted;
             long grandTotalQuantity = 0;
-            double grandTotalValue = 0;
+            decimal grandTotalValue = 0;
 
             // write the header
             WriteSubGroupRow(writer, "Total", 3);
@@ -150,7 +150,7 @@ namespace HeavyDuck.Eve.AssetManager
                 writer.WriteStartElement("tr");
                 WriteElementStringWithClass(writer, "td", "r", FormatInt64(quantityTotals[key]));
                 writer.WriteElementString("td", key);
-                WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(valueTotals[key]));
+                WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDecimal1(valueTotals[key]));
                 writer.WriteEndElement(); // tr
             }
 
@@ -159,7 +159,7 @@ namespace HeavyDuck.Eve.AssetManager
             writer.WriteAttributeString("class", "bold");
             WriteElementStringWithClass(writer, "td", "r", FormatInt64(grandTotalQuantity));
             writer.WriteElementString("td", "Grand Total");
-            WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDouble1(grandTotalValue));
+            WriteElementRawWithClass(writer, "td", "r", ISK_HTML + FormatDecimal1(grandTotalValue));
             writer.WriteEndElement(); // tr
         }
 
@@ -307,7 +307,7 @@ namespace HeavyDuck.Eve.AssetManager
             summary.Columns.Add("typeName", typeof(string));
             summary.Columns.Add("groupName", typeof(string));
             summary.Columns.Add("quantity", typeof(long));
-            summary.Columns.Add("value", typeof(double));
+            summary.Columns.Add("value", typeof(decimal));
             summary.Columns["quantity"].DefaultValue = 0;
             summary.Columns["value"].DefaultValue = 0;
             summary.PrimaryKey = new DataColumn[] { summary.Columns["typeName"] };
@@ -341,7 +341,7 @@ namespace HeavyDuck.Eve.AssetManager
                     string type = row["typeName"].ToString();
                     int typeID = Convert.ToInt32(row["typeID"]);
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
+                    decimal value = quantity * Program.GetCompositePrice(EveTypes.Items[typeID]);
 
                     // tweak blank locations to say "???" instead
                     if (string.IsNullOrEmpty(location)) location = "???";
@@ -394,7 +394,7 @@ namespace HeavyDuck.Eve.AssetManager
                     else
                     {
                         summaryRow["quantity"] = Convert.ToInt64(summaryRow["quantity"]) + quantity;
-                        summaryRow["value"] = Convert.ToDouble(summaryRow["value"]) + value;
+                        summaryRow["value"] = Convert.ToDecimal(summaryRow["value"]) + value;
                     }
                 }
 
@@ -421,7 +421,7 @@ namespace HeavyDuck.Eve.AssetManager
                     string group = row["groupName"].ToString();
                     string type = row["typeName"].ToString();
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = Convert.ToDouble(row["value"]);
+                    decimal value = Convert.ToDecimal(row["value"]);
 
                     // group
                     if (group != currentGroup)
@@ -441,7 +441,8 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // do yet another groupby down to each, err, group
-                double totalItems = 0, totalValue = 0;
+                long totalItems = 0;
+                decimal totalValue = 0;
                 DataTable groupTotals = TableHelper.GroupBy(summary, "groupName", "quantity", "value");
                 DataView groupTotalsView = new DataView(groupTotals, null, "groupName", DataViewRowState.CurrentRows);
 
@@ -451,7 +452,7 @@ namespace HeavyDuck.Eve.AssetManager
                 {
                     string group = row["groupName"].ToString();
                     long quantity = Convert.ToInt64(row["quantity"]);
-                    double value = Convert.ToDouble(row["value"]);
+                    decimal value = Convert.ToDecimal(row["value"]);
 
                     // totals
                     totalItems += quantity;
@@ -591,7 +592,7 @@ namespace HeavyDuck.Eve.AssetManager
         private static void WritePosReportGroup(XmlWriter writer, Dictionary<int, long> itemCounts, DataRow[] fuelRows)
         {
             Dictionary<string, TimeSpan> minDurations = new Dictionary<string, TimeSpan>();
-            Dictionary<string, double> totalCosts = new Dictionary<string, double>();
+            Dictionary<string, decimal> totalCosts = new Dictionary<string, decimal>();
 
             // the fuel group header
             WriteSubGroupRow(writer, "Fuel", 6);
@@ -604,7 +605,7 @@ namespace HeavyDuck.Eve.AssetManager
                 string fuelPurposeText = fuelRow["purposeText"].ToString();
                 long fuelQuantity = Convert.ToInt64(fuelRow["quantity"]);
                 long quantity = itemCounts.ContainsKey(fuelTypeID) ? itemCounts[fuelTypeID] : 0;
-                double fuelValue = fuelQuantity * Program.GetCompositePrice(EveTypes.Items[fuelTypeID]) * 24;
+                decimal fuelValue = fuelQuantity * Program.GetCompositePrice(EveTypes.Items[fuelTypeID]) * 24;
                 TimeSpan duration = TimeSpan.FromHours(quantity / (double)fuelQuantity);
 
                 // keep track of the minimum run-time for each need
@@ -782,27 +783,27 @@ namespace HeavyDuck.Eve.AssetManager
             return Convert.ToInt64(value).ToString("#,##0");
         }
 
-        private static string FormatDouble1(object value)
+        private static string FormatDecimal1(object value)
         {
-            return Convert.ToDouble(value).ToString("#,##0.0");
+            return Convert.ToDecimal(value).ToString("#,##0.0");
         }
 
-        private static string FormatDouble2(object value)
+        private static string FormatDecimal2(object value)
         {
-            return Convert.ToDouble(value).ToString("#,##0.00");
+            return Convert.ToDecimal(value).ToString("#,##0.00");
         }
 
-        private static string FormatDouble3(object value)
+        private static string FormatDecimal3(object value)
         {
-            return Convert.ToDouble(value).ToString("#,##0.000");
+            return Convert.ToDecimal(value).ToString("#,##0.000");
         }
 
-        private static string FormatIskValue(double value)
+        private static string FormatIskValue(decimal value)
         {
             if (value == 0)
                 return QUESTION_HTML;
             else
-                return ISK_HTML + FormatDouble1(value);
+                return ISK_HTML + FormatDecimal1(value);
         }
 
         #endregion
