@@ -679,6 +679,7 @@ namespace HeavyDuck.Eve.AssetManager
         private void RunQuery()
         {
             ProgressDialog dialog;
+            EventHandler<ProgressEventArgs> handler = null;
 
             // update our internal representation of the search boxes
             m_clauses = GetWhereClauses(m_searchControls);
@@ -686,10 +687,23 @@ namespace HeavyDuck.Eve.AssetManager
             // run the query on the asset database again
             try
             {
+                // create dialog
                 dialog = new ProgressDialog();
+
+                // create the handler for price query updates
+                handler = delegate(object sender, ProgressEventArgs e)
+                {
+                    if (e.Max < 1) return;
+                    dialog.Update("Updating market prices...", e.Progress, e.Max);
+                };
+                Program.PriceProvider.UpdateProgress += handler;
+
+                // initialize the dialog and display it
+                dialog.Update(0, 1);
                 dialog.AddTask(UpdateAssetTable);
                 dialog.Show();
 
+                // display the fresh asset data in the grid
                 grid.DataSource = m_assets.DefaultView;
                 grid.AutoResizeColumns();
                 UpdateAssetCount();
@@ -697,6 +711,11 @@ namespace HeavyDuck.Eve.AssetManager
             catch (ProgressException ex)
             {
                 ShowException(ex);
+            }
+            finally
+            {
+                if (handler != null)
+                    Program.PriceProvider.UpdateProgress -= handler;
             }
         }
 
@@ -824,14 +843,14 @@ namespace HeavyDuck.Eve.AssetManager
         private void UpdateAssetTable(IProgressDialog dialog)
         {
             // update dialog
-            dialog.Update("Querying asset database...", 0, 2);
+            dialog.Update("Querying asset database...");
 
             // yay
             m_assets = AssetCache.GetAssetTable(m_clauses);
             m_assets.DefaultView.Sort = "typeName ASC";
 
             // complete progress
-            dialog.Advance();
+            dialog.Update("Complete!", 1, 1);
         }
 
         private void ExportCsv(DataTable data, string title, string outputPath)
