@@ -620,6 +620,7 @@ namespace HeavyDuck.Eve.AssetManager
             ProgressDialog dialog;
             ReportOptionsDialog options;
             ReportOptionsDialog.AssetSourceType sourceType;
+            EventHandler<ProgressEventArgs> handler = null;
             int savedSearchID = -1;
 
             // ask the user some stuff
@@ -635,11 +636,20 @@ namespace HeavyDuck.Eve.AssetManager
 
             try
             {
+                // create dialog
                 dialog = new ProgressDialog();
+
+                // create the handler for price query updates
+                handler = delegate(object sender, ProgressEventArgs e)
+                {
+                    if (e.Max < 1) return;
+                    dialog.Update("Updating market prices...", e.Progress, e.Max);
+                };
+                Program.PriceProvider.UpdateProgress += handler;
+
+                // add the progress task
                 dialog.AddTask(delegate(IProgressDialog p)
                 {
-                    p.Update(0, 2);
-
                     // create our clauses and get assets
                     p.Update("Querying assets...");
                     switch (sourceType)
@@ -658,16 +668,14 @@ namespace HeavyDuck.Eve.AssetManager
                         default:
                             throw new ApplicationException("Don't know how to get assets for source type " + sourceType.ToString());
                     }
-                    p.Advance();
 
                     // generate report
                     p.Update("Generating report...");
                     reportMethod(assets, options.ReportTitle, options.ReportPath);
-                    p.Advance();
-
                 });
-                dialog.Show();
 
+                // run it!
+                dialog.Show();
             }
             catch (Exception ex)
             {
@@ -680,6 +688,11 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // get outta here, she's gonna blow!
                 return;
+            }
+            finally
+            {
+                if (handler != null)
+                    Program.PriceProvider.UpdateProgress -= handler;
             }
 
             // open the report
