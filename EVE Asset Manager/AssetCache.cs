@@ -235,6 +235,10 @@ namespace HeavyDuck.Eve.AssetManager
             if (!string.IsNullOrEmpty(quantityExpression))
                 data.Columns.Add("_marketPriceTotal", typeof(decimal), quantityExpression + " * _marketPriceUnit");
 
+            // bail after creating columns if market pricing is disabled
+            if (!Program.OptionsDialog["Pricing.UseMarketPricing"].ValueAsBoolean)
+                return;
+
             // set them?
             try
             {
@@ -262,8 +266,17 @@ namespace HeavyDuck.Eve.AssetManager
                 // assign them to the rows
                 foreach (KeyValuePair<int, decimal> price in index_prices)
                 {
+                    decimal value;
+
+                    // respect the "ZeroBlueprints" option
+                    if (Program.OptionsDialog["Pricing.ZeroBlueprints"].ValueAsBoolean && EveTypes.Items[price.Key].Category.CategoryName == "Blueprint")
+                        value = 0;
+                    else
+                        value = price.Value;
+
+                    // loop rows and add price
                     foreach (DataRow row in index_rows[price.Key])
-                        row[columnMarketPriceUnit] = price.Value;
+                        row[columnMarketPriceUnit] = value;
                 }
 
                 // accept changes

@@ -35,7 +35,7 @@ namespace HeavyDuck.Eve.AssetManager
             XmlWriter writer;
 
             // group by something
-            data = TableHelper.GroupBy(data, groupColumn + ", " + subGroupColumn + ", typeName, typeID", "quantity");
+            data = TableHelper.GroupBy(data, groupColumn + ", " + subGroupColumn + ", typeName, typeID, _marketPriceUnit", "quantity");
 
             // create a view with the sort we need
             view = new DataView(data, null, groupColumn + ", " + subGroupColumn + ", typeName", DataViewRowState.CurrentRows);
@@ -316,7 +316,7 @@ namespace HeavyDuck.Eve.AssetManager
             summary.PrimaryKey = new DataColumn[] { summary.Columns["typeName"] };
             
             // group calculate the source data
-            data = TableHelper.GroupBy(data, "groupName, typeID, typeName, locationName", "quantity");
+            data = TableHelper.GroupBy(data, "groupName, typeID, typeName, _marketPriceUnit, locationName", "quantity");
 
             // create the view
             view = new DataView(data, null, "locationName, groupName, typeName", DataViewRowState.CurrentRows);
@@ -771,7 +771,7 @@ namespace HeavyDuck.Eve.AssetManager
         {
             writer.WriteStartElement("p");
             writer.WriteElementString("strong", "Note: ");
-            writer.WriteRaw("Prices in this report use the median sell price from <a href=\"http://nonninja.net/eve/prices/\">Bellatroix&rsquo;s Median Price Feeds</a> for region The Forge, which is based on data collected by <a href=\"http://eve-central.com/\">EVE-Central</a>. If market data is not available, baseprices may be substituted, depending on your options.");
+            writer.WriteRaw("Prices in this report use the median price from <a href=\"http://eve-central.com/\">EVE-Central</a>. If market data is not available, baseprices may be substituted, depending on your options.");
             writer.WriteEndElement();
         }
 

@@ -4,8 +4,9 @@
         <Option name="General.StartupRefresh" type="Bool" label="Refresh assets at startup" default="false" />
     </Group>
     <Group name="Pricing">
+        <Option name="Pricing.UseMarketPricing" type="Bool" label="Use market pricing" default="true" />
         <Option name="Pricing.ZeroBlueprints" type="Bool" label="Zero all blueprint prices" default="true" />
-        <Option name="Pricing.UseBasePrice" type="Bool" label="When market data is unavailable, use baseprice" default="true" />
+        <Option name="Pricing.UseBasePrice" type="Bool" label="When market data is unavailable, use baseprice" default="false" />
         <Option name="Pricing.CorrectBasePrice" type="Bool" label="Apply certain baseprice corrections" default="false" />
     </Group>
     <Group name="Reports">
