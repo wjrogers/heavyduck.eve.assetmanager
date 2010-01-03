@@ -38,6 +38,9 @@ namespace HeavyDuck.Eve.AssetManager
             // container
             m_fields.Add(new SearchField("Container", "ct.typeName", SearchField.SearchFieldType.String));
 
+            // container ID
+            m_fields.Add(new SearchField("Container ID", "a.containerID", SearchField.SearchFieldType.Number));
+
             // location
             m_fields.Add(new SearchField("Location", "locationName", SearchField.SearchFieldType.String));
 
