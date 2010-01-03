@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Heavy Duck Software")]
 [assembly: AssemblyProduct("EVE Asset Manager")]
-[assembly: AssemblyCopyright("Copyright © William J Rogers 2008")]
+[assembly: AssemblyCopyright("Copyright © William J Rogers 2008-2010")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -29,4 +29,4 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.5.2.*")]
+[assembly: AssemblyVersion("1.6.0.*")]

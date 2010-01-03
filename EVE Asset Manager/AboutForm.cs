@@ -23,7 +23,7 @@ namespace HeavyDuck.Eve.AssetManager
         private void AboutForm_Load(object sender, EventArgs e)
         {
             version_label.Text = "Version " + GetVersionString(true);
-            copyright_label.Text = "Copyright © William J Rogers 2008";
+            copyright_label.Text = "Copyright © William J Rogers 2008-2010";
             link_label.Text = HOMEPAGE;
         }
 
