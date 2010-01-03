@@ -294,12 +294,14 @@ namespace HeavyDuck.Eve.AssetManager
 
         private static DataTable GetTable(string sql)
         {
-            DataTable data = new DataTable();
+            DataTable data;
 
             using (SQLiteConnection conn = GetOpenConnection())
             {
                 using (SQLiteDataAdapter adapter = new SQLiteDataAdapter(sql, conn))
                 {
+                    data = new DataTable();
+                    data.CaseSensitive = true;
                     adapter.Fill(data);
                 }
             }
