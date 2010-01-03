@@ -139,6 +139,9 @@ namespace HeavyDuck.Eve.AssetManager
                 }
             }
 
+            // set proxy
+            SetProxyUri(OptionsDialog["General.EveApiProxy"].ValueAsString);
+
             // load keys and characters from disk
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
             LoadDataTable(m_characters, "characters.xml", "Failed to load your character list. You may need to reset your corp asset preferences.");
@@ -274,6 +277,33 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Change the base API URI (for using a proxy, for example).
+        /// </summary>
+        /// <returns>If the uri seems OK, true; otherwise, false</returns>
+        public static bool SetProxyUri(string uri)
+        {
+            Uri proxy;
+
+            try
+            {
+                if (uri != null && uri.Trim() != "")
+                {
+                    proxy = new Uri(uri);
+                    EveApiHelper.ApiRoot = proxy;
+                    return true;
+                }
+                else
+                {
+                    // treat an empty or null string as "reset to default"
+                    EveApiHelper.ApiRoot = EveApiHelper.DefaultApiRoot;
+                }
+            }
+            catch { /* pass */ }
+
+            return false;
         }
 
         public static void RefreshCharacters()

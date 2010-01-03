@@ -3,6 +3,7 @@
     <Group name="General">
         <Option name="General.StartupRefresh" type="Bool" label="Refresh assets at startup" default="false" />
         <Option name="General.DataDumpPath" type="String" label="Data dump path" default="" picker="open" />
+        <Option name="General.EveApiProxy" type="String" label="EVE API Proxy" default="" />
     </Group>
     <Group name="Pricing">
         <Option name="Pricing.UseMarketPricing" type="Bool" label="Use market pricing" default="true" />

@@ -308,6 +308,12 @@ namespace HeavyDuck.Eve.AssetManager
         {
             DialogResult result = Program.OptionsDialog.Show(this);
 
+            // update the API helper's base URI
+            if (result == DialogResult.OK)
+            {
+                Program.SetProxyUri(Program.OptionsDialog["General.EveApiProxy"].ValueAsString);
+            }
+
             // if the user changed the data dump path, validate the new one and reload some stuff
             if (result == DialogResult.OK && Program.OptionsDialog["General.DataDumpPath"].ValueAsString != Program.CcpDatabasePath)
             {
