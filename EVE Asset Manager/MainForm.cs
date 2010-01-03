@@ -306,7 +306,23 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void menu_options_options_Click(object sender, EventArgs e)
         {
-            Program.OptionsDialog.Show(this);
+            DialogResult result = Program.OptionsDialog.Show(this);
+
+            // if the user changed the data dump path, validate the new one and reload some stuff
+            if (result == DialogResult.OK && Program.OptionsDialog["General.DataDumpPath"].ValueAsString != Program.CcpDatabasePath)
+            {
+                string candidate = Program.OptionsDialog["General.DataDumpPath"].ValueAsString;
+
+                // first, validate it
+                if (!Program.ValidateDataDump(candidate))
+                {
+                    MessageBox.Show(this, "The data dump file you selected is not valid. The next time you start EVE Asset Manager, you will be prompted to select a valid data dump.", "Invalid Data Dump", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // change the path (this will trigger an EveTypes reload)
+                Program.CcpDatabasePath = candidate;
+            }
         }
 
         private void menu_help_about_Click(object sender, EventArgs e)

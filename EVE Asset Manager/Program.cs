@@ -39,18 +39,6 @@ namespace HeavyDuck.Eve.AssetManager
             // fix the fucking retarded default toolstrip look
             ToolStripManager.VisualStylesEnabled = false;
 
-            // look for the static data db
-#if DEBUG
-            m_ccpDbPath = Path.Combine(@"C:\Temp", CCP_DB_NAME);
-#else
-            m_ccpDbPath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), CCP_DB_NAME);
-#endif
-            if (!File.Exists(m_ccpDbPath))
-            {
-                MessageBox.Show("Could not find the CCP database file. Please download it from http://dl.eve-files.com/media/0712/trinity_1.0_sqlite3.db.zip!", "Database Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
             // prep the key table
             m_keys = new DataTable("Keys");
             m_keys.Columns.Add("userID", typeof(int));
@@ -96,8 +84,60 @@ namespace HeavyDuck.Eve.AssetManager
                 MainForm.ShowException(null, "Failed to load your options.", ex);
             }
 
-            // initialize the eve types from the ccp database (if this fails, we got problems, so let it crash the app)
-            EveTypes.Initialize(CcpDatabaseConnectionString);
+            // locate data dump
+            bool firstTry = true;
+            while (m_ccpDbPath == null)
+            {
+                string candidate;
+
+                // when the option is blank, attempt to scan the program directory for a suitable file
+                if (firstTry && string.IsNullOrEmpty(OptionsDialog["General.DataDumpPath"].ValueAsString))
+                {
+                    foreach (string file in Directory.GetFiles(Path.GetDirectoryName(Application.ExecutablePath)))
+                    {
+                        if ((file.EndsWith(".db") || file.EndsWith(".sqlite") || file.EndsWith(".sqlite3"))
+                            && ValidateDataDump(file))
+                        {
+                            OptionsDialog["General.DataDumpPath"].Value = file;
+                            break;
+                        }
+                    }
+
+                    firstTry = false;
+                }
+
+                // initialize from the option
+                candidate = OptionsDialog["General.DataDumpPath"].ValueAsString;
+
+                // check whether it exists and is valid
+                if (!File.Exists(candidate) || !ValidateDataDump(candidate))
+                {
+                    DialogResult should_browse = MessageBox.Show("The EVE data dump is invalid or missing. Would you like to browse for it? If you don't know where to find it, check the EVE Asset Manager web page.", "Database Not Found", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                    if (should_browse == DialogResult.Yes)
+                    {
+                        using (OpenFileDialog dialog = new OpenFileDialog())
+                        {
+                            dialog.InitialDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+                            dialog.Multiselect = false;
+                            dialog.CheckFileExists = true;
+
+                            if (dialog.ShowDialog() == DialogResult.OK)
+                                OptionsDialog["General.DataDumpPath"].Value = dialog.FileName;
+                        }
+                    }
+                    else
+                    {
+                        // this is the user's way out if they don't know what the hell to do
+                        return;
+                    }
+                }
+                else
+                {
+                    // yay, we found it, set it (this will load the EveTypes
+                    CcpDatabasePath = candidate;
+                }
+            }
 
             // load keys and characters from disk
             LoadDataTable(m_keys, "keys.xml", "Failed to load your saved API keys. You may need to enter them again.");
@@ -151,6 +191,26 @@ namespace HeavyDuck.Eve.AssetManager
         public static string CcpDatabasePath
         {
             get { return m_ccpDbPath; }
+            set
+            {
+                // sanity check
+                if (value == m_ccpDbPath) return;
+
+                // set it
+                m_ccpDbPath = value;
+
+                // reload EveTypes
+                try
+                {
+                    EveTypes.Initialize(CcpDatabaseConnectionString);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex.ToString());
+                    MainForm.ShowException(null, "Failed to load EVE data from the data dump", ex);
+                    Application.Exit();
+                }
+            }
         }
 
         public static string CcpDatabaseConnectionString
@@ -190,6 +250,30 @@ namespace HeavyDuck.Eve.AssetManager
             }
             else
                 return 0m;
+        }
+
+        /// <summary>
+        /// Attempt to test whether a file is a valid SQLite3 EVE data dump.
+        /// </summary>
+        public static bool ValidateDataDump(string path)
+        {
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection("Data Source=" + path + ";Read Only=True;FailIfMissing=True"))
+                {
+                    using (DataTable table = new DataTable())
+                    {
+                        using (SQLiteDataAdapter adapter = new SQLiteDataAdapter("SELECT typeName FROM invTypes WHERE typeID = 11301", conn))
+                            adapter.Fill(table);
+
+                        return table.Rows[0]["typeName"].Equals("Armor EM Hardener I");
+                    }
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static void RefreshCharacters()
