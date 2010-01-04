@@ -187,7 +187,7 @@ namespace HeavyDuck.Eve.AssetManager
         public BooleanOp SelectedBooleanOp
         {
             get { return (BooleanOp)boolean_combo.SelectedItem; }
-            set { boolean_combo.SelectedValue = value; }
+            set { boolean_combo.SelectedItem = value; }
         }
 
         /// <summary>
