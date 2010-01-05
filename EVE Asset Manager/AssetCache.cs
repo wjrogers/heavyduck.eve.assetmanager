@@ -261,7 +261,7 @@ namespace HeavyDuck.Eve.AssetManager
                 }
 
                 // get prices
-                index_prices = Program.PriceProvider.GetPrices(index_rows.Keys, PriceStat.Median);
+                index_prices = Program.PriceProvider.GetPricesByRegion(index_rows.Keys, Program.OptionsDialog["Pricing.Region"].ValueAsInt, Program.GetPriceStatOption());
 
                 // assign them to the rows
                 foreach (KeyValuePair<int, decimal> price in index_prices)

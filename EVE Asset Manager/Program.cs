@@ -24,7 +24,7 @@ namespace HeavyDuck.Eve.AssetManager
         private static DataTable m_keys;
         private static DataTable m_characters;
         private static OptionsDialog m_options;
-        private static IPriceProvider m_priceProvider = EveCentralHelper.Instance;
+        private static IPriceProvider m_priceProvider = ZofuHelper.Instance;
 
         /// <summary>
         /// The main entry point for the application.
@@ -253,6 +253,21 @@ namespace HeavyDuck.Eve.AssetManager
             }
             else
                 return 0m;
+        }
+
+        public static PriceStat GetPriceStatOption()
+        {
+            switch (Program.OptionsDialog["Pricing.Value"].ValueAsString)
+            {
+                case "median":
+                    return PriceStat.Median;
+                case "minimum":
+                    return PriceStat.Low;
+                case "maximum":
+                    return PriceStat.High;
+                default:
+                    return PriceStat.Mean;
+            }
         }
 
         /// <summary>

@@ -7,6 +7,89 @@
     </Group>
     <Group name="Pricing">
         <Option name="Pricing.UseMarketPricing" type="Bool" label="Use market pricing" default="true" />
+        <Option name="Pricing.Region" type="Enum" label="Pricing region" default="-2">
+            <Depends>Pricing.UseMarketPricing</Depends>
+            <ValueList>
+                <Value label="Connected High-sec">-2</Value>
+                <Value label="All">-1</Value>
+                <Value label="A821-A">10000019</Value>
+                <Value label="Aridia">10000054</Value>
+                <Value label="Black Rise">10000069</Value>
+                <Value label="Branch">10000055</Value>
+                <Value label="Cache">10000007</Value>
+                <Value label="Catch">10000014</Value>
+                <Value label="Cloud Ring">10000051</Value>
+                <Value label="Cobalt Edge">10000053</Value>
+                <Value label="Curse">10000012</Value>
+                <Value label="Deklein">10000035</Value>
+                <Value label="Delve">10000060</Value>
+                <Value label="Derelik">10000001</Value>
+                <Value label="Detorid">10000005</Value>
+                <Value label="Devoid">10000036</Value>
+                <Value label="Domain">10000043</Value>
+                <Value label="Esoteria">10000039</Value>
+                <Value label="Essence">10000064</Value>
+                <Value label="Etherium Reach">10000027</Value>
+                <Value label="Everyshore">10000037</Value>
+                <Value label="Fade">10000046</Value>
+                <Value label="Feythabolis">10000056</Value>
+                <Value label="Fountain">10000058</Value>
+                <Value label="Geminate">10000029</Value>
+                <Value label="Genesis">10000067</Value>
+                <Value label="Great Wildlands">10000011</Value>
+                <Value label="Heimatar">10000030</Value>
+                <Value label="Immensea">10000025</Value>
+                <Value label="Impass">10000031</Value>
+                <Value label="Insmother">10000009</Value>
+                <Value label="J7HZ-F">10000017</Value>
+                <Value label="Kador">10000052</Value>
+                <Value label="Khanid">10000049</Value>
+                <Value label="Kor-Azor">10000065</Value>
+                <Value label="Lonetrek">10000016</Value>
+                <Value label="Malpais">10000013</Value>
+                <Value label="Metropolis">10000042</Value>
+                <Value label="Molden Heath">10000028</Value>
+                <Value label="Oasa">10000040</Value>
+                <Value label="Omist">10000062</Value>
+                <Value label="Outer Passage">10000021</Value>
+                <Value label="Outer Ring">10000057</Value>
+                <Value label="Paragon Soul">10000059</Value>
+                <Value label="Period Basis">10000063</Value>
+                <Value label="Perrigen Falls">10000066</Value>
+                <Value label="Placid">10000048</Value>
+                <Value label="Providence">10000047</Value>
+                <Value label="Pure Blind">10000023</Value>
+                <Value label="Querious">10000050</Value>
+                <Value label="Scalding Pass">10000008</Value>
+                <Value label="Sinq Laison">10000032</Value>
+                <Value label="Solitude">10000044</Value>
+                <Value label="Stain">10000022</Value>
+                <Value label="Syndicate">10000041</Value>
+                <Value label="Tash-Murkon">10000020</Value>
+                <Value label="Tenal">10000045</Value>
+                <Value label="Tenerifis">10000061</Value>
+                <Value label="The Bleak Lands">10000038</Value>
+                <Value label="The Citadel">10000033</Value>
+                <Value label="The Forge">10000002</Value>
+                <Value label="The Kalevala Expanse">10000034</Value>
+                <Value label="The Spire">10000018</Value>
+                <Value label="Tribute">10000010</Value>
+                <Value label="UUA-F4">10000004</Value>
+                <Value label="Vale of the Silent">10000003</Value>
+                <Value label="Venal">10000015</Value>
+                <Value label="Verge Vendor">10000068</Value>
+                <Value label="Wicked Creek">10000006</Value>
+            </ValueList>
+        </Option>
+        <Option name="Pricing.Value" type="Enum" label="Pricing Value" default="average">
+            <Depends>Pricing.UseMarketPricing</Depends>
+            <ValueList>
+                <Value>average</Value>
+                <Value>median</Value>
+                <Value>minimum</Value>
+                <Value>maximum</Value>
+            </ValueList>
+        </Option>
         <Option name="Pricing.ZeroBlueprints" type="Bool" label="Zero all blueprint prices" default="true" />
         <Option name="Pricing.UseBasePrice" type="Bool" label="When market data is unavailable, use baseprice" default="false" />
         <Option name="Pricing.CorrectBasePrice" type="Bool" label="Apply certain baseprice corrections" default="false" />
