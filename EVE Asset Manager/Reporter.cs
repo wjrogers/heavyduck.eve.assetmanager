@@ -213,7 +213,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
 
             // create a view with the sort we need
-            view = new DataView(data, null, "characterName, containerName, locationName, containerID, slotOrder, typeName", DataViewRowState.CurrentRows);
+            view = new DataView(data, null, "containerName, locationName, containerID, slotOrder, typeName", DataViewRowState.CurrentRows);
 
             // open the output file
             using (FileStream output = File.Open(outputPath, FileMode.Create, FileAccess.Write))
