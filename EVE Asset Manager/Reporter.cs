@@ -48,7 +48,6 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // start the document
                 WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
-                WritePriceDisclaimer(writer);
                 writer.WriteStartElement("table");
 
                 // grouping variables
@@ -328,7 +327,6 @@ namespace HeavyDuck.Eve.AssetManager
 
                 // start writing
                 WriteToBody(writer, title, SUBGROUP_YELLOW_CSS);
-                WritePriceDisclaimer(writer);
                 writer.WriteStartElement("table");
 
                 // the stuff for grouping
@@ -765,14 +763,6 @@ namespace HeavyDuck.Eve.AssetManager
         private static void WriteSpacerCell(XmlWriter writer)
         {
             WriteElementStringWithClass(writer, "td", "s", " ");
-        }
-
-        private static void WritePriceDisclaimer(XmlWriter writer)
-        {
-            writer.WriteStartElement("p");
-            writer.WriteElementString("strong", "Note: ");
-            writer.WriteRaw("Prices in this report use the median price from <a href=\"http://eve-central.com/\">EVE-Central</a>. If market data is not available, baseprices may be substituted, depending on your options.");
-            writer.WriteEndElement();
         }
 
         private static string FormatTimeSpan(TimeSpan value)
