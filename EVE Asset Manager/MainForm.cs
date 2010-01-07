@@ -20,6 +20,7 @@ namespace HeavyDuck.Eve.AssetManager
         private List<WhereClause> m_clauses;
         private ToolStripLabel m_countLabel;
         private List<SearchClauseControl> m_searchControls;
+        private int m_gridCurrentRowIndex = -1;
 
         private DoubleBufferedDataGridView grid;
 
@@ -65,6 +66,7 @@ namespace HeavyDuck.Eve.AssetManager
 
             // prep the asset grid
             GridHelper.Initialize(grid, true);
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             GridHelper.AddColumn(grid, "typeName", "Name");
             GridHelper.AddColumn(grid, "groupName", "Group");
             GridHelper.AddColumn(grid, "categoryName", "Category");
@@ -87,7 +89,9 @@ namespace HeavyDuck.Eve.AssetManager
             grid.Columns["itemID"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["_marketPriceTotal"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["_marketPriceTotal"].DefaultCellStyle.Format = numberFormat;
-            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            grid.Columns["typeName"].Frozen = true;
+            grid.CellFormatting += new DataGridViewCellFormattingEventHandler(grid_CellFormatting);
+            grid.CurrentCellChanged += new EventHandler(grid_CurrentCellChanged);
 
             // the label for counting assets
             m_countLabel = new ToolStripLabel();
@@ -130,6 +134,34 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 e.SuppressKeyPress = true;
                 this.BeginInvoke((MethodInvoker)RunQuery);
+            }
+        }
+
+        private void grid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            DataGridViewCell currentCell = grid.CurrentCell;
+
+            if (e.ColumnIndex == 0 && currentCell.ColumnIndex > 0 && currentCell.RowIndex == e.RowIndex)
+                e.CellStyle.BackColor = Color.LightCyan;
+        }
+
+        private void grid_CurrentCellChanged(object sender, EventArgs e)
+        {
+            DataGridViewCell currentCell = grid.CurrentCell;
+
+            // repaint the "old" current cell row's first cell
+            if (m_gridCurrentRowIndex >= 0)
+                grid.InvalidateCell(0, m_gridCurrentRowIndex);
+
+            // repaint the new one and remember its index for next time
+            if (currentCell != null)
+            {
+                grid.InvalidateCell(0, currentCell.RowIndex);
+                m_gridCurrentRowIndex = currentCell.RowIndex;
+            }
+            else
+            {
+                m_gridCurrentRowIndex = -1;
             }
         }
 
