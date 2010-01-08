@@ -792,14 +792,13 @@ namespace HeavyDuck.Eve.AssetManager
             List<string> outdatedNames = new List<string>();
             CachedResult result;
 
-            // clear the assets and set our dialog value/max
+            // clear the assets
             m_assets = null;
-            dialog.Update(0, 4);
 
             // make sure our character list is up to date
             dialog.Update("Refreshing character list...");
             Program.RefreshCharacters();
-            dialog.Advance();
+            dialog.Update(1, 3 + Program.Characters.Rows.Count);
 
             // fetch the asset XML
             dialog.Update("Querying API for asset lists...");
@@ -863,8 +862,10 @@ namespace HeavyDuck.Eve.AssetManager
                         }
                     }
                 }
+
+                // progress
+                dialog.Advance();
             }
-            dialog.Advance();
 
             // inform the user about any files that could not be refreshed
             if (outdatedNames.Count > 0)
@@ -915,9 +916,6 @@ namespace HeavyDuck.Eve.AssetManager
             // yay
             m_assets = AssetCache.GetAssetTable(m_clauses);
             m_assets.DefaultView.Sort = "typeName ASC";
-
-            // complete progress
-            dialog.Update("Complete!", 1, 1);
         }
 
         private void ExportCsv(DataTable data, string title, string outputPath)
