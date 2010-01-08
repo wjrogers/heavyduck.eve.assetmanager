@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
@@ -560,10 +561,10 @@ namespace HeavyDuck.Eve.AssetManager
 
                         // build our little fuel row select
                         StringBuilder filter = new StringBuilder();
-                        filter.AppendFormat("controlTowerTypeID = {0}", towerTypeID);
-                        filter.AppendFormat(" AND (minSecurityLevel IS NULL OR minSecurityLevel < {0})", security);
+                        filter.AppendFormat(CultureInfo.InvariantCulture, "controlTowerTypeID = {0}", towerTypeID);
+                        filter.AppendFormat(CultureInfo.InvariantCulture, " AND (minSecurityLevel IS NULL OR minSecurityLevel < {0})", security);
                         if (factionID.HasValue)
-                            filter.AppendFormat(" AND (factionID IS NULL OR factionID = {0})", factionID);
+                            filter.AppendFormat(CultureInfo.InvariantCulture, " AND (factionID IS NULL OR factionID = {0})", factionID);
 
                         // switch to the new tower
                         currentTower = tower;
