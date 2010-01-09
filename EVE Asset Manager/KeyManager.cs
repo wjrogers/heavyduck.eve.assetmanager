@@ -24,7 +24,6 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid_keys, "apiKey", "Full API Key");
             grid_keys.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid_keys.Columns["userID"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-            grid_keys.DataSource = Program.ApiKeys;
             grid_keys.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             // set up character grid
@@ -39,7 +38,9 @@ namespace HeavyDuck.Eve.AssetManager
             grid_characters.Columns["name"].ReadOnly = true;
             grid_characters.Columns["corporationName"].ReadOnly = true;
             grid_characters.Columns["corporationName"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            grid_characters.DataSource = Program.Characters;
+
+            // bind data to the grids
+            BindGrids();
 
             // no sorty-sort arrows
             GridHelper.DisableClickToSort(grid_keys, false);
@@ -90,7 +91,32 @@ namespace HeavyDuck.Eve.AssetManager
 
         private void refresh_button_Click(object sender, EventArgs e)
         {
-            Program.RefreshCharacters();
+            ProgressDialog dialog;
+
+            try
+            {
+                // grids freak out if we modify their data sources in another thread
+                grid_keys.DataSource = null;
+                grid_characters.DataSource = null;
+
+                // refresh using a user-friendly progress dialog
+                dialog = new ProgressDialog();
+                dialog.AddTask(Program.RefreshCharacters);
+                dialog.Show();
+
+                // re-attach grids
+                BindGrids();
+            }
+            catch (Exception ex)
+            {
+                MainForm.ShowException(this, "Failed to refresh characters", ex);
+            }
+        }
+
+        private void BindGrids()
+        {
+            grid_keys.DataSource = Program.ApiKeys;
+            grid_characters.DataSource = Program.Characters;
         }
 
         public static new void Show(IWin32Window parent)

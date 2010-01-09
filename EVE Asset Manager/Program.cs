@@ -323,6 +323,11 @@ namespace HeavyDuck.Eve.AssetManager
 
         public static void RefreshCharacters()
         {
+            RefreshCharacters(null);
+        }
+
+        public static void RefreshCharacters(IProgressDialog dialog)
+        {
             string path;
             string apiKey;
             int userID;
@@ -331,6 +336,10 @@ namespace HeavyDuck.Eve.AssetManager
 
             // this is where we're gonna put the characters while we query and read XML and stuff
             tempChars = m_characters.Clone();
+
+            // progress
+            if (dialog != null)
+                dialog.Update("Refreshing character lists from API...", 0, Program.ApiKeys.Rows.Count);
             
             foreach (DataRow row in Program.ApiKeys.Rows)
             {
@@ -380,6 +389,10 @@ namespace HeavyDuck.Eve.AssetManager
                         tempChars.Rows.Add(charRow);
                     }
                 }
+
+                // progress
+                if (dialog != null)
+                    dialog.Advance();
             }
 
             // clear our character list and replace it
