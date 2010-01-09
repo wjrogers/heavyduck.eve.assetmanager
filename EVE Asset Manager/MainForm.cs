@@ -100,12 +100,12 @@ namespace HeavyDuck.Eve.AssetManager
             m_countLabel.Text = "0 assets";
 
             // set up the toolbar
-            toolbar.Items.Add(new ToolStripButton("Query", Properties.Resources.magnifier, ToolStripItem_Click, "query"));
-            toolbar.Items.Add(new ToolStripButton("Add Field", Properties.Resources.add, ToolStripItem_Click, "add_field"));
-            toolbar.Items.Add(new ToolStripButton("Reset Fields", Properties.Resources.page_white, ToolStripItem_Click, "reset_fields"));
+            toolbar.Items.Add(new ToolStripButton("Query", Appearance.Icons.Search, ToolStripItem_Click, "query"));
+            toolbar.Items.Add(new ToolStripButton("Add Field", Appearance.Icons.Add, ToolStripItem_Click, "add_field"));
+            toolbar.Items.Add(new ToolStripButton("Reset Fields", Appearance.Icons.New, ToolStripItem_Click, "reset_fields"));
             toolbar.Items.Add(new ToolStripSeparator());
-            toolbar.Items.Add(new ToolStripButton("Save Query", Properties.Resources.disk, ToolStripItem_Click, "save_query"));
-            toolbar.Items.Add(new ToolStripDropDownButton("Load Query", Properties.Resources.folder, null, "load_query"));
+            toolbar.Items.Add(new ToolStripButton("Save Query", Appearance.Icons.Save, ToolStripItem_Click, "save_query"));
+            toolbar.Items.Add(new ToolStripDropDownButton("Load Query", Appearance.Icons.Open, null, "load_query"));
             toolbar.Items.Add(m_countLabel);
 
             // toolbar tooltips

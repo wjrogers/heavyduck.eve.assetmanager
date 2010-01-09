@@ -52,7 +52,7 @@ namespace HeavyDuck.Eve.AssetManager
             this.remove_button.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.remove_button.FlatAppearance.BorderSize = 0;
             this.remove_button.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.remove_button.Image = global::HeavyDuck.Eve.AssetManager.Properties.Resources.delete;
+            this.remove_button.Image = global::HeavyDuck.Eve.AssetManager.Properties.Resources.minus_circle;
             this.remove_button.Location = new System.Drawing.Point(665, 1);
             this.remove_button.Name = "remove_button";
             this.remove_button.Size = new System.Drawing.Size(19, 19);
