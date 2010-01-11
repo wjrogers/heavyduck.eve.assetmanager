@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.SQLite;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
@@ -942,7 +943,7 @@ namespace HeavyDuck.Eve.AssetManager
                     foreach (DataRow row in data.Rows)
                     {
                         WriteCsvValue(writer, row[data.Columns[0]]);
-                        for (int i = 0; i < data.Columns.Count; ++i)
+                        for (int i = 1; i < data.Columns.Count; ++i)
                         {
                             writer.Write(',');
                             WriteCsvValue(writer, row[data.Columns[i]]);
@@ -966,7 +967,7 @@ namespace HeavyDuck.Eve.AssetManager
             }
             else if (value != null)
             {
-                writer.Write(value.ToString());
+                writer.Write(Convert.ToString(value, CultureInfo.InvariantCulture));
             }
         }
 
