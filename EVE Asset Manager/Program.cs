@@ -332,7 +332,7 @@ namespace HeavyDuck.Eve.AssetManager
             string apiKey;
             int userID;
             DataTable tempChars;
-            CachedResult result;
+            CacheResult result;
 
             // this is where we're gonna put the characters while we query and read XML and stuff
             tempChars = m_characters.Clone();

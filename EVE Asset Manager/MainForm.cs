@@ -791,7 +791,7 @@ namespace HeavyDuck.Eve.AssetManager
         {
             Dictionary<string, string> assetFiles = new Dictionary<string, string>();
             List<string> outdatedNames = new List<string>();
-            CachedResult result;
+            CacheResult result;
 
             // clear the assets
             m_assets = null;

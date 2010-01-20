@@ -402,7 +402,7 @@ namespace HeavyDuck.Eve.AssetManager
             SQLiteConnection conn = null;
             SQLiteTransaction trans = null;
             StringBuilder sql;
-            CachedResult result;
+            CacheResult result;
             string xmlPath;
 
             // create our single uninteresting parameter
