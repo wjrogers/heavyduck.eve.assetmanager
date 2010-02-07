@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
@@ -17,10 +18,13 @@ namespace HeavyDuck.Eve.AssetManager
 {
     public partial class MainForm : Form
     {
+        private readonly Dictionary<string, CacheResult> m_assetsCachedUntil = new Dictionary<string, CacheResult>();
+
         private DataTable m_assets;
         private List<WhereClause> m_clauses;
         private ToolStripLabel m_countLabel;
         private List<SearchClauseControl> m_searchControls;
+        private System.Threading.Timer m_timerCacheStatus;
         private int m_gridCurrentRowIndex = -1;
 
         private DoubleBufferedDataGridView grid;
@@ -35,10 +39,15 @@ namespace HeavyDuck.Eve.AssetManager
             // update the title with the version
             this.Text += " " + AboutForm.GetVersionString(false);
 
+            // create the timer and start it
+            m_timerCacheStatus = new System.Threading.Timer(TimerCacheStatusCallback);
+            m_timerCacheStatus.Change(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+
             // attach event handlers
             this.Load += new EventHandler(MainForm_Load);
             this.Shown += new EventHandler(MainForm_Shown);
             this.KeyDown += new KeyEventHandler(MainForm_KeyDown);
+            this.FormClosed += new FormClosedEventHandler(MainForm_FormClosed);
             menu_file_import.Click += new EventHandler(menu_file_import_Click);
             menu_file_export.Click += new EventHandler(menu_file_export_Click);
             menu_file_exit.Click += new EventHandler(menu_file_exit_Click);
@@ -115,6 +124,9 @@ namespace HeavyDuck.Eve.AssetManager
             toolbar.Items["reset_fields"].ToolTipText = "Reset all the search fields";
             toolbar.Items["save_query"].ToolTipText = "Save the current search fields for later";
 
+            // statusbar items
+            statusbar.Items.Add(new ToolStripLabel("", null, false, null, "firstExpiry"));
+
             // initialize the UI with stuff
             InitializeSearchControls();
             UpdateAssetCount();
@@ -126,6 +138,8 @@ namespace HeavyDuck.Eve.AssetManager
             // refresh assets at startup if that option is set
             if (Program.OptionsDialog["General.StartupRefresh"].ValueAsBoolean)
                 menu_options_refresh_Click(this, EventArgs.Empty);
+            else
+                BeginCheckAssets();
         }
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
@@ -136,6 +150,12 @@ namespace HeavyDuck.Eve.AssetManager
                 e.SuppressKeyPress = true;
                 this.BeginInvoke((MethodInvoker)RunQuery);
             }
+        }
+
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            // proactively kill the timer to reduce the chance of an exception
+            m_timerCacheStatus.Dispose();
         }
 
         private void grid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -326,6 +346,11 @@ namespace HeavyDuck.Eve.AssetManager
             {
                 ShowException(ex);
                 return;
+            }
+            finally
+            {
+                // give the user feedback on the new state of the cache, successful or not
+                BeginCheckAssets();
             }
 
             // re-run the query
@@ -917,6 +942,142 @@ namespace HeavyDuck.Eve.AssetManager
             // yay
             m_assets = AssetCache.GetAssetTable(m_clauses);
             m_assets.DefaultView.Sort = "typeName ASC";
+        }
+
+        private void TimerCacheStatusCallback(object state)
+        {
+            // if we re-enter this method, just return
+            if (!Monitor.TryEnter(m_timerCacheStatus, TimeSpan.Zero))
+                return;
+
+            // update the display (this just updates the style really so it's highlighted if it's past)
+            try
+            {
+                this.BeginInvoke(new MethodInvoker(DisplayCachedUntil));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex.ToString());
+            }
+            finally
+            {
+                Monitor.Exit(m_timerCacheStatus);
+            }
+        }
+
+        /// <summary>
+        /// Begins an asynchronous check of the cached asset XML.
+        /// </summary>
+        private void BeginCheckAssets()
+        {
+            MethodInvoker d;
+
+            d = new MethodInvoker(CheckAssets);
+            d.BeginInvoke(CheckAssetsCallback, d);
+        }
+
+        /// <summary>
+        /// Checks the cache status of assets for all known characters and corporations.
+        /// </summary>
+        private void CheckAssets()
+        {
+            lock (m_assetsCachedUntil)
+            {
+                // clear all existing state
+                m_assetsCachedUntil.Clear();
+
+                // TODO: refactor access to Characters table to improve thread safety
+                foreach (DataRow row in Program.Characters.Rows)
+                {
+                    int userID = Convert.ToInt32(row["userID"]);
+                    int characterID = Convert.ToInt32(row["characterID"]);
+                    int corporationID = Convert.ToInt32(row["corporationID"]);
+                    string apiKey = Program.ApiKeys.Rows.Find(userID)["apiKey"].ToString();
+                    string characterName = row["name"].ToString();
+                    string corporationName = row["corporationName"].ToString();
+                    bool queryCorp = Convert.ToBoolean(row["queryCorp"]);
+
+                    // check character assets
+                    m_assetsCachedUntil[characterName] = EveApiHelper.CheckCharacterAssetList(userID, apiKey, characterID);
+
+                    // check corp assets unless it has been disabled
+                    if (queryCorp)
+                        m_assetsCachedUntil[corporationName] = EveApiHelper.CheckCorporationAssetList(userID, apiKey, characterID, corporationID);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asynchronous callback handler for CheckAssets.
+        /// </summary>
+        private void CheckAssetsCallback(IAsyncResult result)
+        {
+            MethodInvoker d;
+
+            // end invoke
+            try
+            {
+                // UI thread
+                if (this.InvokeRequired)
+                {
+                    this.BeginInvoke(new AsyncCallback(CheckAssetsCallback), result);
+                    return;
+                }
+
+                // call EndInvoke
+                d = (MethodInvoker)result.AsyncState;
+                d.EndInvoke(result);
+
+                // display the updated expiration stuff
+                DisplayCachedUntil();
+            }
+            catch (Exception ex)
+            {
+                ShowException(null, "Error checking asset cache status", ex);
+            }
+        }
+
+        /// <summary>
+        /// Displays the earliest asset cache expiration date in the status bar.
+        /// </summary>
+        private void DisplayCachedUntil()
+        {
+            ToolStripLabel label = statusbar.Items["firstExpiry"] as ToolStripLabel;
+
+            // sanity check
+            if (label == null) return;
+
+            // display the earliest cachedUntil
+            lock (m_assetsCachedUntil)
+            {
+                KeyValuePair<string, CacheResult>? first = null;
+
+                // find it
+                foreach (KeyValuePair<string, CacheResult> pair in m_assetsCachedUntil)
+                {
+                    if (pair.Value.State != CacheState.Uncached
+                        && (!first.HasValue || pair.Value.CachedUntil < first.Value.Value.CachedUntil))
+                        first = pair;
+                }
+
+                // display it
+                if (first.HasValue)
+                    label.Text = string.Format("assets cached until {0:d MMMM} at {0:HH:mm} local time", first.Value.Value.CachedUntil);
+                else
+                    label.Text = "";
+
+                // style it
+                if (first.HasValue && DateTime.Now > first.Value.Value.CachedUntil)
+                {
+                    label.ForeColor = Color.Maroon;
+                    label.Font = new Font(statusbar.Font, FontStyle.Bold);
+                }
+                else
+                {
+                    label.ForeColor = statusbar.ForeColor;
+                    label.Font = statusbar.Font;
+                }
+            }
         }
 
         private void ExportCsv(DataTable data, string title, string outputPath)
