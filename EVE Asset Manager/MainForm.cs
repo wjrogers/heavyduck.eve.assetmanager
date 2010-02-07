@@ -125,7 +125,10 @@ namespace HeavyDuck.Eve.AssetManager
             toolbar.Items["save_query"].ToolTipText = "Save the current search fields for later";
 
             // statusbar items
+            statusbar.ShowItemToolTips = true;
             statusbar.Items.Add(new ToolStripLabel("", null, false, null, "firstExpiry"));
+            statusbar.Items["firstExpiry"].ToolTipText = "Click for details";
+            statusbar.Items["firstExpiry"].Click += new EventHandler(firstExpiry_Click);
 
             // initialize the UI with stuff
             InitializeSearchControls();
@@ -264,6 +267,32 @@ namespace HeavyDuck.Eve.AssetManager
             RemoveSearchControl(control);
             m_searchControls.Remove(control);
             UpdateSearchPanel();
+        }
+
+        private void firstExpiry_Click(object sender, EventArgs e)
+        {
+            DataTable cacheStatus;
+
+            lock (m_assetsCachedUntil)
+            {
+                // create the table for displaying the cache status
+                cacheStatus = new DataTable("Cache Status");
+                cacheStatus.Columns.Add("name", typeof(string));
+                cacheStatus.Columns.Add("cachedUntil", typeof(DateTime));
+                cacheStatus.BeginLoadData();
+
+                // copy the asset cache status into it
+                foreach (KeyValuePair<string, CacheResult> entry in m_assetsCachedUntil)
+                    cacheStatus.LoadDataRow(new object[] { entry.Key, entry.Value.CachedUntil }, false);
+
+                // finish up
+                cacheStatus.DefaultView.Sort = "name ASC";
+                cacheStatus.AcceptChanges();
+                cacheStatus.EndLoadData();
+            }
+
+            // display it
+            new CacheStatusDialog(cacheStatus).ShowDialog(this);
         }
 
         #endregion
@@ -1060,22 +1089,22 @@ namespace HeavyDuck.Eve.AssetManager
                         first = pair;
                 }
 
-                // display it
-                if (first.HasValue)
-                    label.Text = string.Format("assets cached until {0:d MMMM} at {0:HH:mm} local time", first.Value.Value.CachedUntil);
-                else
-                    label.Text = "";
-
-                // style it
+                // display it and style it
                 if (first.HasValue && DateTime.Now > first.Value.Value.CachedUntil)
                 {
+                    label.Text = string.Format("asset cache expired {0:d MMMM} at {0:HH:mm} local time", first.Value.Value.CachedUntil);
                     label.ForeColor = Color.Maroon;
                     label.Font = new Font(statusbar.Font, FontStyle.Bold);
                 }
-                else
+                else if (first.HasValue)
                 {
+                    label.Text = string.Format("assets cached until {0:d MMMM} at {0:HH:mm} local time", first.Value.Value.CachedUntil);
                     label.ForeColor = statusbar.ForeColor;
                     label.Font = statusbar.Font;
+                }
+                else
+                {
+                    label.Text = "";
                 }
             }
         }
