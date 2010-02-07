@@ -50,6 +50,19 @@ namespace HeavyDuck.Eve.AssetManager
             add_button.Click += new EventHandler(add_button_Click);
             remove_button.Click += new EventHandler(remove_button_Click);
             refresh_button.Click += new EventHandler(refresh_button_Click);
+            api_link.LinkClicked += new LinkLabelLinkClickedEventHandler(api_link_LinkClicked);
+        }
+
+        private void api_link_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(api_link.Text);
+            }
+            catch (Exception ex)
+            {
+                MainForm.ShowException(this, "Error opening website", ex);
+            }
         }
 
         private void add_button_Click(object sender, EventArgs e)
