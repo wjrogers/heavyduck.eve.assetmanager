@@ -53,6 +53,9 @@ namespace HeavyDuck.Eve.AssetManager
             // quantity
             m_fields.Add(new SearchField("Count", "a.quantity", SearchField.SearchFieldType.Number));
 
+            // volume (the CAST seems to be necessary to get the correct kind of comparison)
+            m_fields.Add(new SearchField("Volume", "CAST(totalVolume AS NUMERIC)", SearchField.SearchFieldType.Number));
+
             // baseprice
             m_fields.Add(new SearchField("Base Price", "t.basePrice", SearchField.SearchFieldType.Number));
 

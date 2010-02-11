@@ -142,7 +142,7 @@ namespace HeavyDuck.Eve.AssetManager
                 // build our select statement, select clause
                 sql = new StringBuilder();
                 sql.Append("SELECT ");
-                sql.Append("a.*, t.typeName, t.basePrice, t.portionSize, g.groupName, cat.categoryName, f.flagName, ct.typeName AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, mlattr.valueInt AS metaLevel ");
+                sql.Append("a.*, t.typeName, t.basePrice, t.portionSize, t.volume * a.quantity AS totalVolume, g.groupName, cat.categoryName, f.flagName, ct.typeName AS containerName, c.typeID AS containerTypeID, cg.groupName AS containerGroup, ccat.categoryName AS containerCategory, mlattr.valueInt AS metaLevel ");
                 if (gotOutposts)
                     sql.Append(", COALESCE(l.itemName, o.stationName) AS locationName ");
                 else

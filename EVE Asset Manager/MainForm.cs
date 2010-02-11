@@ -82,6 +82,7 @@ namespace HeavyDuck.Eve.AssetManager
             GridHelper.AddColumn(grid, "categoryName", "Category");
             GridHelper.AddColumn(grid, "characterName", "Owner");
             GridHelper.AddColumn(grid, "quantity", "Count");
+            GridHelper.AddColumn(grid, "totalVolume", "Volume");
             GridHelper.AddColumn(grid, "locationName", "Location");
             GridHelper.AddColumn(grid, "flagName", "Flag");
             GridHelper.AddColumn(grid, "containerName", "Container");
@@ -94,6 +95,8 @@ namespace HeavyDuck.Eve.AssetManager
             grid.Columns["quantity"].DefaultCellStyle.Format = numberFormat;
             grid.Columns["basePrice"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["basePrice"].DefaultCellStyle.Format = numberFormat;
+            grid.Columns["totalVolume"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            grid.Columns["totalVolume"].DefaultCellStyle.Format = numberFormat;
             grid.Columns["metaLevel"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["containerID"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["itemID"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
